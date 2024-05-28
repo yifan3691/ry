@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ods.mapper.OdsSqlPackMapper">
+    
+    <resultMap type="OdsSqlPack" id="OdsSqlPackResult">
+        <result property="Id"    column="Id"    />
+        <result property="Name"    column="Name"    />
+        <result property="sqlVarchar"    column="sqlVarchar"    />
+        <result property="sqlPriority"    column="sqlPriority"    />
+        <result property="sqlGroup"    column="sqlGroup"    />
+        <result property="sqlGroupCode"    column="sqlGroupCode"    />
+        <result property="groupPriority"    column="groupPriority"    />
+        <result property="procedureGroup"    column="procedureGroup"    />
+        <result property="groupOutValue"    column="groupOutValue"    />
+        <result property="groupInValue"    column="groupInValue"    />
+        <result property="procedureOutValue"    column="procedureOutValue"    />
+        <result property="procedureInValue"    column="procedureInValue"    />
+        <result property="status"    column="status"    />
+        <result property="actualid"    column="actualid"    />
+        <result property="createdate"    column="createdate"    />
+        <result property="createuserid"    column="createuserid"    />
+        <result property="owneruserid"    column="owneruserid"    />
+        <result property="partitionid"    column="partitionid"    />
+        <result property="schemaname"    column="schemaname"    />
+        <result property="setid"    column="setid"    />
+        <result property="structureid"    column="structureid"    />
+        <result property="tenantid"    column="tenantid"    />
+        <result property="updatedate"    column="updatedate"    />
+        <result property="updateuserid"    column="updateuserid"    />
+    </resultMap>
+
+    <sql id="selectOdsSqlPackVo">
+        select Id, Name, sqlVarchar, sqlPriority, sqlGroup, sqlGroupCode, groupPriority, procedureGroup, groupOutValue, groupInValue, procedureOutValue, procedureInValue, status, actualid, createdate, createuserid, owneruserid, partitionid, schemaname, setid, structureid, tenantid, updatedate, updateuserid from ods_sql_pack
+    </sql>
+
+    <select id="selectOdsSqlPackList" parameterType="OdsSqlPack" resultMap="OdsSqlPackResult">
+        <include refid="selectOdsSqlPackVo"/>
+        <where>  
+            <if test="Name != null  and Name != ''"> and Name like concat('%', #{Name}, '%')</if>
+            <if test="sqlVarchar != null  and sqlVarchar != ''"> and sqlVarchar like concat('%', #{sqlVarchar}, '%')</if>
+            <if test="sqlPriority != null "> and sqlPriority = #{sqlPriority}</if>
+            <if test="sqlGroup != null  and sqlGroup != ''"> and sqlGroup = #{sqlGroup}</if>
+            <if test="sqlGroupCode != null  and sqlGroupCode != ''"> and sqlGroupCode = #{sqlGroupCode}</if>
+        </where>
+    </select>
+    
+    <select id="selectOdsSqlPackById" parameterType="Long" resultMap="OdsSqlPackResult">
+        <include refid="selectOdsSqlPackVo"/>
+        where Id = #{Id}
+    </select>
+        
+    <insert id="insertOdsSqlPack" parameterType="OdsSqlPack">
+        insert into ods_sql_pack
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="Id != null">Id,</if>
+            <if test="Name != null and Name != ''">Name,</if>
+            <if test="sqlVarchar != null and sqlVarchar != ''">sqlVarchar,</if>
+            <if test="sqlPriority != null">sqlPriority,</if>
+            <if test="sqlGroup != null">sqlGroup,</if>
+            <if test="sqlGroupCode != null">sqlGroupCode,</if>
+            <if test="groupPriority != null">groupPriority,</if>
+            <if test="procedureGroup != null">procedureGroup,</if>
+            <if test="groupOutValue != null">groupOutValue,</if>
+            <if test="groupInValue != null">groupInValue,</if>
+            <if test="procedureOutValue != null">procedureOutValue,</if>
+            <if test="procedureInValue != null">procedureInValue,</if>
+            <if test="status != null">status,</if>
+            <if test="actualid != null">actualid,</if>
+            <if test="createdate != null">createdate,</if>
+            <if test="createuserid != null">createuserid,</if>
+            <if test="owneruserid != null">owneruserid,</if>
+            <if test="partitionid != null">partitionid,</if>
+            <if test="schemaname != null">schemaname,</if>
+            <if test="setid != null">setid,</if>
+            <if test="structureid != null">structureid,</if>
+            <if test="tenantid != null">tenantid,</if>
+            <if test="updatedate != null">updatedate,</if>
+            <if test="updateuserid != null">updateuserid,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="Id != null">#{Id},</if>
+            <if test="Name != null and Name != ''">#{Name},</if>
+            <if test="sqlVarchar != null and sqlVarchar != ''">#{sqlVarchar},</if>
+            <if test="sqlPriority != null">#{sqlPriority},</if>
+            <if test="sqlGroup != null">#{sqlGroup},</if>
+            <if test="sqlGroupCode != null">#{sqlGroupCode},</if>
+            <if test="groupPriority != null">#{groupPriority},</if>
+            <if test="procedureGroup != null">#{procedureGroup},</if>
+            <if test="groupOutValue != null">#{groupOutValue},</if>
+            <if test="groupInValue != null">#{groupInValue},</if>
+            <if test="procedureOutValue != null">#{procedureOutValue},</if>
+            <if test="procedureInValue != null">#{procedureInValue},</if>
+            <if test="status != null">#{status},</if>
+            <if test="actualid != null">#{actualid},</if>
+            <if test="createdate != null">#{createdate},</if>
+            <if test="createuserid != null">#{createuserid},</if>
+            <if test="owneruserid != null">#{owneruserid},</if>
+            <if test="partitionid != null">#{partitionid},</if>
+            <if test="schemaname != null">#{schemaname},</if>
+            <if test="setid != null">#{setid},</if>
+            <if test="structureid != null">#{structureid},</if>
+            <if test="tenantid != null">#{tenantid},</if>
+            <if test="updatedate != null">#{updatedate},</if>
+            <if test="updateuserid != null">#{updateuserid},</if>
+         </trim>
+    </insert>
+
+    <update id="updateOdsSqlPack" parameterType="OdsSqlPack">
+        update ods_sql_pack
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="Name != null and Name != ''">Name = #{Name},</if>
+            <if test="sqlVarchar != null and sqlVarchar != ''">sqlVarchar = #{sqlVarchar},</if>
+            <if test="sqlPriority != null">sqlPriority = #{sqlPriority},</if>
+            <if test="sqlGroup != null">sqlGroup = #{sqlGroup},</if>
+            <if test="sqlGroupCode != null">sqlGroupCode = #{sqlGroupCode},</if>
+            <if test="groupPriority != null">groupPriority = #{groupPriority},</if>
+            <if test="procedureGroup != null">procedureGroup = #{procedureGroup},</if>
+            <if test="groupOutValue != null">groupOutValue = #{groupOutValue},</if>
+            <if test="groupInValue != null">groupInValue = #{groupInValue},</if>
+            <if test="procedureOutValue != null">procedureOutValue = #{procedureOutValue},</if>
+            <if test="procedureInValue != null">procedureInValue = #{procedureInValue},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="actualid != null">actualid = #{actualid},</if>
+            <if test="createdate != null">createdate = #{createdate},</if>
+            <if test="createuserid != null">createuserid = #{createuserid},</if>
+            <if test="owneruserid != null">owneruserid = #{owneruserid},</if>
+            <if test="partitionid != null">partitionid = #{partitionid},</if>
+            <if test="schemaname != null">schemaname = #{schemaname},</if>
+            <if test="setid != null">setid = #{setid},</if>
+            <if test="structureid != null">structureid = #{structureid},</if>
+            <if test="tenantid != null">tenantid = #{tenantid},</if>
+            <if test="updatedate != null">updatedate = #{updatedate},</if>
+            <if test="updateuserid != null">updateuserid = #{updateuserid},</if>
+        </trim>
+        where Id = #{Id}
+    </update>
+
+    <delete id="deleteOdsSqlPackById" parameterType="Long">
+        delete from ods_sql_pack where Id = #{Id}
+    </delete>
+
+    <delete id="deleteOdsSqlPackByIds" parameterType="String">
+        delete from ods_sql_pack where Id in 
+        <foreach item="Id" collection="array" open="(" separator="," close=")">
+            #{Id}
+        </foreach>
+    </delete>
+</mapper>

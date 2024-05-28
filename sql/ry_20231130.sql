@@ -1,6 +1,9 @@
 -- ----------------------------
 -- 1、部门表
 -- ----------------------------
+
+ALTER DATABASE ry_vue CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
 drop table if exists sys_dept;
 create table sys_dept (
   dept_id           bigint(20)      not null auto_increment    comment '部门id',
