@@ -4,6 +4,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 
 import com.ruoyi.common.annotation.Anonymous;
+import com.ruoyi.common.utils.StringUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -98,15 +99,15 @@ public class OdsSqlPackController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('ods:ods:remove')")
     @Log(title = "ods", businessType = BusinessType.DELETE)
-	@DeleteMapping("/{Ids}")
-    public AjaxResult remove(@PathVariable Long[] Ids)
+	@PostMapping("/delete/{ids}")
+    public AjaxResult remove(@PathVariable String ids)
     {
-        if (Ids.length>1){
-            return toAjax(odsSqlPackService.updateOdsSqlStatusByIds(Ids));
+        String[] arrayId = ids.split(",");
+        if (arrayId.length>1) {
+            return toAjax(odsSqlPackService.updateOdsSqlStatusByIds(arrayId));
         } else {
-            return toAjax(odsSqlPackService.deleteOdsSqlPackById(Ids[0]));
+            return toAjax(odsSqlPackService.updateOdsSqlStatusById(arrayId[0]));
         }
-
     }
 
 
@@ -114,7 +115,6 @@ public class OdsSqlPackController extends BaseController
      * 查询sqlGrop列表
      */
 
-    @PreAuthorize("@ss.hasPermi('ods:ods:sqlGroplist')")
     @GetMapping("/sqlGropList")
     public List<String> sqlGropList()
     {

@@ -59,6 +59,7 @@ public class OdsSqlPackServiceImpl implements IOdsSqlPackService
     {
         int maxId = odsSqlPackMapper.selectOdsSqlMaxId();
         odsSqlPack.setId((long) (maxId+1));
+        odsSqlPack.setStatus("EFFECTIVE");
         return odsSqlPackMapper.insertOdsSqlPack(odsSqlPack);
     }
 
@@ -111,12 +112,12 @@ public class OdsSqlPackServiceImpl implements IOdsSqlPackService
      * 更新有效状态
      */
     @Override
-    public int updateOdsSqlStatusById(Long Id) {
+    public int updateOdsSqlStatusById(String Id) {
         return odsSqlPackMapper.updateOdsSqlStatusById(Id);
     }
 
     @Override
-    public int updateOdsSqlStatusByIds(Long[] Ids) {
+    public int updateOdsSqlStatusByIds(String[] Ids) {
         return odsSqlPackMapper.updateOdsSqlStatusByIds(Ids);
     }
 }

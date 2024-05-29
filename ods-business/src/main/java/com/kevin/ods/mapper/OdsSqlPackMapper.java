@@ -76,12 +76,12 @@ public interface OdsSqlPackMapper
     /**
      * 更新有效状态
      */
-    public int updateOdsSqlStatusById(Long Id);
+    public int updateOdsSqlStatusById(String Id);
 
 
     /**
      * 批量更新有效状态
      */
-    public int updateOdsSqlStatusByIds(Long[] Ids);
+    public int updateOdsSqlStatusByIds(String[] Ids);
 
 }

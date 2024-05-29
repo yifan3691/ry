@@ -151,10 +151,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </update>
 
 
-    <update id="updateOdsSqlStatusById" parameterType="OdsSqlPack">
+    <update id="updateOdsSqlStatusById" parameterType="String">
         update ods_sql_pack
         <trim prefix="SET" suffixOverrides=",">
-            <if test="status != null">status = #{status}</if>
+            status = "DROP"
         </trim>
         where Id = #{Id}
     </update>
@@ -162,11 +162,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="updateOdsSqlStatusByIds" parameterType="String">
         update ods_sql_pack
         <trim prefix="SET" suffixOverrides=",">
-            <if test="status != null">status = #{status}</if>
+            status = "DROP"
         </trim>
         where
-        <foreach item="Id" collection="array" open="(" separator="," close=")">
-            #{Id}
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
         </foreach>
     </update>
 
