@@ -33,12 +33,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <sql id="selectOdsSqlPackVo">
         select Id, name, sqlVarchar, sqlPriority, sqlGroup, groupPriority, procedureGroup, groupOutValue, groupInValue, procedureOutValue, procedureInValue, actualid, createdate, createuserid, owneruserid, partitionid, schemaname, setid, structureid, tenantid, updatedate, updateuserid, sqlGroupCode, status from ods_sql_pack
-         where  status = 'EFFECTIVE' order by groupPriority,sqlPriority asc
     </sql>
 
     <select id="selectOdsSqlPackList" parameterType="OdsSqlPack" resultMap="OdsSqlPackResult">
         <include refid="selectOdsSqlPackVo"/>
         <where>
+            status = 'EFFECTIVE'
             <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
             <if test="sqlVarchar != null  and sqlVarchar != ''"> and sqlVarchar = #{sqlVarchar}</if>
             <if test="sqlPriority != null "> and sqlPriority = #{sqlPriority}</if>
@@ -46,16 +46,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="groupPriority != null  and groupPriority != ''"> and groupPriority = #{groupPriority}</if>
             <if test="procedureGroup != null  and procedureGroup != ''"> and procedureGroup = #{procedureGroup}</if>
         </where>
+        order by groupPriority,sqlPriority asc
     </select>
 
 
 
     <select id="selectOdsSqlMaxId" parameterType="String">
-        select max(id) from ods_sql_pack
+        select max(id) from ods_sql_pack where status = 'EFFECTIVE'
     </select>
 
     <select id="selectSqlGropList" parameterType="java.util.List">
-        select distinct sqlGroup from ods_sql_pack
+        select distinct sqlGroup from ods_sql_pack where status = 'EFFECTIVE'
     </select>
 
     <select id="selectOdsSqlPackById" parameterType="Long" resultMap="OdsSqlPackResult">

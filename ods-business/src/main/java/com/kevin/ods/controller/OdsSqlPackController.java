@@ -2,6 +2,8 @@ package com.kevin.ods.controller;
 
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
+
+import com.ruoyi.common.annotation.Anonymous;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -107,7 +109,8 @@ public class OdsSqlPackController extends BaseController
      * 查询sqlGrop列表
      */
 
-    @PreAuthorize("@ss.hasPermi('ods:ods:sqlGroplist')")
+//    @PreAuthorize("@ss.hasPermi('ods:ods:sqlGroplist')")
+    @Anonymous
     @GetMapping("/sqlGropList")
     public List<String> sqlGropList()
     {
