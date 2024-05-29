@@ -71,4 +71,17 @@ public interface OdsSqlPackMapper
      * @return
      */
     public List<String> selectSqlGropList();
+
+
+    /**
+     * 更新有效状态
+     */
+    public int updateOdsSqlStatusById(Long Id);
+
+
+    /**
+     * 批量更新有效状态
+     */
+    public int updateOdsSqlStatusByIds(Long[] Ids);
+
 }

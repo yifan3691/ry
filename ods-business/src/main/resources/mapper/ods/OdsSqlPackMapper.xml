@@ -40,7 +40,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <where>
             status = 'EFFECTIVE'
             <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
-            <if test="sqlVarchar != null  and sqlVarchar != ''"> and sqlVarchar = #{sqlVarchar}</if>
+            <if test="sqlVarchar != null  and sqlVarchar != ''"> and lower(sqlVarchar) like concat('%', #{sqlVarchar}, '%')</if>
             <if test="sqlPriority != null "> and sqlPriority = #{sqlPriority}</if>
             <if test="sqlGroup != null  and sqlGroup != ''"> and sqlGroup = #{sqlGroup}</if>
             <if test="groupPriority != null  and groupPriority != ''"> and groupPriority = #{groupPriority}</if>
@@ -149,6 +149,28 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </trim>
         where Id = #{Id}
     </update>
+
+
+    <update id="updateOdsSqlStatusById" parameterType="OdsSqlPack">
+        update ods_sql_pack
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="status != null">status = #{status}</if>
+        </trim>
+        where Id = #{Id}
+    </update>
+
+    <update id="updateOdsSqlStatusByIds" parameterType="String">
+        update ods_sql_pack
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="status != null">status = #{status}</if>
+        </trim>
+        where
+        <foreach item="Id" collection="array" open="(" separator="," close=")">
+            #{Id}
+        </foreach>
+    </update>
+
+
 
     <delete id="deleteOdsSqlPackById" parameterType="Long">
         delete from ods_sql_pack where Id = #{Id}

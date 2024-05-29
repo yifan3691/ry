@@ -106,4 +106,17 @@ public class OdsSqlPackServiceImpl implements IOdsSqlPackService
     public List<String> selectSqlGropList() {
         return odsSqlPackMapper.selectSqlGropList();
     }
+
+    /**
+     * 更新有效状态
+     */
+    @Override
+    public int updateOdsSqlStatusById(Long Id) {
+        return odsSqlPackMapper.updateOdsSqlStatusById(Id);
+    }
+
+    @Override
+    public int updateOdsSqlStatusByIds(Long[] Ids) {
+        return odsSqlPackMapper.updateOdsSqlStatusByIds(Ids);
+    }
 }

@@ -101,7 +101,12 @@ public class OdsSqlPackController extends BaseController
 	@DeleteMapping("/{Ids}")
     public AjaxResult remove(@PathVariable Long[] Ids)
     {
-        return toAjax(odsSqlPackService.deleteOdsSqlPackByIds(Ids));
+        if (Ids.length>1){
+            return toAjax(odsSqlPackService.updateOdsSqlStatusByIds(Ids));
+        } else {
+            return toAjax(odsSqlPackService.deleteOdsSqlPackById(Ids[0]));
+        }
+
     }
 
 
@@ -109,8 +114,7 @@ public class OdsSqlPackController extends BaseController
      * 查询sqlGrop列表
      */
 
-//    @PreAuthorize("@ss.hasPermi('ods:ods:sqlGroplist')")
-    @Anonymous
+    @PreAuthorize("@ss.hasPermi('ods:ods:sqlGroplist')")
     @GetMapping("/sqlGropList")
     public List<String> sqlGropList()
     {
