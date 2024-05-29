@@ -64,7 +64,7 @@
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ods-business</artifactId>
-            <version>${ruoyi.version}</version>
+            <version>3.8.7</version>
         </dependency>
 
     </dependencies>
