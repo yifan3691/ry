@@ -52,7 +52,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
 
     <select id="selectOdsSqlMaxId" parameterType="String">
-        select max(id) from ods_sql_pack where status = 'EFFECTIVE'
+        select max(id) from ods_sql_pack
     </select>
 
     <select id="selectSqlGropList" parameterType="java.util.List">
@@ -164,7 +164,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="SET" suffixOverrides=",">
             status = "DROP"
         </trim>
-        where
+        where Id in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}
         </foreach>
