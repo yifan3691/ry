@@ -63,7 +63,19 @@ public interface IOdsSqlPackService
      * 查询sqlGrop列表
      * @return
      */
-    public List<String> selectSqlGropList();
+    public List<OdsSqlPack> selectSqlGropList();
+
+    /**
+     * 查询procedureGroup列表
+     * @return
+     */
+    public List<OdsSqlPack> selectprocedureGroupList();
+
+    /**
+     * 查询sqlGroupCode列表
+     * @return
+     */
+    public List<OdsSqlPack> selectsqlGroupCodeList();
 
 
 

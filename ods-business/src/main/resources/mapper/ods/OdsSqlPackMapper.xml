@@ -59,6 +59,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         select distinct sqlGroup from ods_sql_pack where status = 'EFFECTIVE'
     </select>
 
+    <select id="selectSqlGropCodeList" parameterType="java.util.List">
+        select distinct sqlGroupCode from ods_sql_pack where status = 'EFFECTIVE'
+    </select>
+
+    <select id="selectprocedureGroupList" parameterType="java.util.List">
+        select distinct procedureGroup from ods_sql_pack where status = 'EFFECTIVE'
+    </select>
+
     <select id="selectOdsSqlPackById" parameterType="Long" resultMap="OdsSqlPackResult">
         <include refid="selectOdsSqlPackVo"/>
         where Id = #{Id}

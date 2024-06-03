@@ -3,14 +3,11 @@ package com.kevin.ods.controller;
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 
-import com.ruoyi.common.annotation.Anonymous;
-import com.ruoyi.common.utils.StringUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -116,8 +113,29 @@ public class OdsSqlPackController extends BaseController
      */
 
     @GetMapping("/sqlGropList")
-    public List<String> sqlGropList()
+    public TableDataInfo sqlGropList()
     {
-        return odsSqlPackService.selectSqlGropList();
+        return getDataTable(odsSqlPackService.selectSqlGropList());
+    }
+
+    /**
+     * 查询procedureGroup列表
+     */
+
+    @GetMapping("/procedureGroupList")
+    public TableDataInfo procedureGroupList()
+    {
+        return getDataTable(odsSqlPackService.selectprocedureGroupList());
+    }
+
+
+    /**
+     * 查询sqlGroupCode列表
+     */
+
+    @GetMapping("/sqlGroupCodeList")
+    public TableDataInfo sqlGroupCodeList()
+    {
+        return getDataTable(odsSqlPackService.selectsqlGroupCodeList());
     }
 }

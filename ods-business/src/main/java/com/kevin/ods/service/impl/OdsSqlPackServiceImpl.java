@@ -1,6 +1,7 @@
 package com.kevin.ods.service.impl;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import com.ruoyi.common.annotation.DataSource;
@@ -58,6 +59,17 @@ public class OdsSqlPackServiceImpl implements IOdsSqlPackService
     public int insertOdsSqlPack(OdsSqlPack odsSqlPack)
     {
         int maxId = odsSqlPackMapper.selectOdsSqlMaxId();
+        OdsSqlPack newOdsSqlPack = new OdsSqlPack();
+        newOdsSqlPack.setSqlGroup(odsSqlPack.getSqlGroup());
+        newOdsSqlPack.setSqlGroupCode(odsSqlPack.getSqlGroupCode());
+        newOdsSqlPack.setProcedureGroup(odsSqlPack.getProcedureGroup());
+
+
+        List<OdsSqlPack> odsSqlPacks = odsSqlPackMapper.selectOdsSqlPackList(newOdsSqlPack);
+        OdsSqlPack maxSqlPriorityOdsSqlPack = odsSqlPacks.stream()
+                .max(Comparator.comparing(OdsSqlPack::getSqlPriority))
+                .orElse(null);
+        odsSqlPack.setSqlPriority(maxSqlPriorityOdsSqlPack.getSqlPriority()+1);
         odsSqlPack.setId((long) (maxId+1));
         odsSqlPack.setStatus("EFFECTIVE");
         return odsSqlPackMapper.insertOdsSqlPack(odsSqlPack);
@@ -104,8 +116,18 @@ public class OdsSqlPackServiceImpl implements IOdsSqlPackService
      * @return
      */
     @Override
-    public List<String> selectSqlGropList() {
+    public List<OdsSqlPack> selectSqlGropList() {
         return odsSqlPackMapper.selectSqlGropList();
+    }
+
+    @Override
+    public List<OdsSqlPack> selectprocedureGroupList() {
+        return odsSqlPackMapper.selectprocedureGroupList();
+    }
+
+    @Override
+    public List<OdsSqlPack> selectsqlGroupCodeList() {
+        return odsSqlPackMapper.selectSqlGropCodeList();
     }
 
     /**

@@ -70,8 +70,18 @@ public interface OdsSqlPackMapper
      * 查询sqlGrop列表
      * @return
      */
-    public List<String> selectSqlGropList();
+    public List<OdsSqlPack> selectSqlGropList();
 
+    /**
+     * 查询sqlGropCode列表
+     * @return
+     */
+    public List<OdsSqlPack> selectSqlGropCodeList();
+    /**
+     * 查询procedureGroup列表
+     * @return
+     */
+    public List<OdsSqlPack> selectprocedureGroupList();
 
     /**
      * 更新有效状态
