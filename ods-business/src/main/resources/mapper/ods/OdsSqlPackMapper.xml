@@ -45,6 +45,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="sqlGroup != null  and sqlGroup != ''"> and sqlGroup = #{sqlGroup}</if>
             <if test="groupPriority != null  and groupPriority != ''"> and groupPriority = #{groupPriority}</if>
             <if test="procedureGroup != null  and procedureGroup != ''"> and procedureGroup = #{procedureGroup}</if>
+            <if test="sqlGroupCode != null  and sqlGroupCode != ''"> and sqlGroupCode = #{sqlGroupCode}</if>
         </where>
         order by groupPriority,sqlPriority asc
     </select>

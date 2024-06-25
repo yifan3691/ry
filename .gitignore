@@ -11,7 +11,6 @@
 .flattened-pom.xml
 demo-api/.flattened-pom.xml
 demo-client/.flattened-pom.xml
-application-pro.yml
 
 # Log file
 *.log
@@ -72,5 +71,6 @@ application-my-test.properties
 mybatis-generator-config.xml
 ChannelBizRankClient.java
 ChannelBizBrandWallClient.java
+application-pro.yml
 /*/rebel.xml
 

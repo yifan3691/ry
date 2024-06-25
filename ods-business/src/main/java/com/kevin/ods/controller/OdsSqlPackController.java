@@ -1,8 +1,14 @@
 package com.kevin.ods.controller;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 
+import com.kevin.ods.domain.BusinessFee;
+import com.ruoyi.common.annotation.Anonymous;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +26,7 @@ import com.kevin.ods.domain.OdsSqlPack;
 import com.kevin.ods.service.IOdsSqlPackService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * odsController
@@ -137,5 +144,29 @@ public class OdsSqlPackController extends BaseController
     public TableDataInfo sqlGroupCodeList()
     {
         return getDataTable(odsSqlPackService.selectsqlGroupCodeList());
+    }
+
+
+    /**
+     * 导入
+     */
+
+    @Anonymous
+    @PostMapping("/importData")
+    public void importData(MultipartFile file, boolean updateSupport,HttpServletResponse response) throws Exception {
+        ExcelUtil<BusinessFee> util = new ExcelUtil<BusinessFee>(BusinessFee.class);
+        List<BusinessFee> userList = util.importExcel(file.getInputStream());
+
+        for (BusinessFee businessFee : userList) {
+            if (businessFee.getTaxExclusiveAmountDifference().compareTo(BigDecimal.ZERO) == 1) {
+//业务处理
+            }
+        }
+
+        System.out.println(response.getStatus());
+
+
+        // 将处理后的数据导出为Excel文件
+        util.exportExcel(response, userList, "ods数据");
     }
 }

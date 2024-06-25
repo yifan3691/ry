@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.OdsSqlPackMapper">
+
+    <resultMap type="OdsReject" id="OdsRejectResult">
+        <result property="businessno"    column="businessno"    />
+        <result property="productcode"    column="productcode"    />
+        <result property="actualid"    column="actualid"    />
+        <result property="auditProgName"    column="audit_prog_name"    />
+        <result property="auditTypeName"    column="audit_type_name"    />
+        <result property="intDate"    column="int_date"    />
+        <result property="businesstype"    column="businesstype"    />
+        <result property="businessstatus"    column="businessstatus"    />
+        <result property="tsflag"    column="tsflag"    />
+        <result property="remark"    column="remark"    />
+        <result property="topid"    column="topid"    />
+    </resultMap>
+
+    <sql id="selectOdsRejectVo">
+        select businessno, productcode, actualid, audit_prog_name, audit_type_name, int_date, businesstype, businessstatus, tsflag, remark, topid from ods_reject
+    </sql>
+
+    <select id="selectOdsRejectList" parameterType="OdsReject" resultMap="OdsRejectResult">
+        <include refid="selectOdsRejectVo"/>
+        <where>
+            <if test="businessno != null  and businessno != ''"> and businessno = #{businessno}</if>
+            <if test="productcode != null  and productcode != ''"> and productcode = #{productcode}</if>
+            <if test="actualid != null  and actualid != ''"> and actualid = #{actualid}</if>
+            <if test="auditProgName != null  and auditProgName != ''"> and audit_prog_name like concat('%', #{auditProgName}, '%')</if>
+            <if test="auditTypeName != null  and auditTypeName != ''"> and audit_type_name like concat('%', #{auditTypeName}, '%')</if>
+            <if test="intDate != null "> and int_date = #{intDate}</if>
+            <if test="businesstype != null  and businesstype != ''"> and businesstype = #{businesstype}</if>
+            <if test="businessstatus != null  and businessstatus != ''"> and businessstatus = #{businessstatus}</if>
+            <if test="tsflag != null  and tsflag != ''"> and tsflag = #{tsflag}</if>
+            <if test="topid != null "> and topid = #{topid}</if>
+        </where>
+    </select>
+
+    <select id="selectOdsRejectByBusinessno" parameterType="String" resultMap="OdsRejectResult">
+        <include refid="selectOdsRejectVo"/>
+        where businessno = #{businessno}
+    </select>
+
+    <insert id="insertOdsReject" parameterType="OdsReject">
+        insert into ods_reject
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="businessno != null">businessno,</if>
+            <if test="productcode != null">productcode,</if>
+            <if test="actualid != null">actualid,</if>
+            <if test="auditProgName != null">audit_prog_name,</if>
+            <if test="auditTypeName != null">audit_type_name,</if>
+            <if test="intDate != null">int_date,</if>
+            <if test="businesstype != null">businesstype,</if>
+            <if test="businessstatus != null">businessstatus,</if>
+            <if test="tsflag != null">tsflag,</if>
+            <if test="remark != null">remark,</if>
+            <if test="topid != null">topid,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="businessno != null">#{businessno},</if>
+            <if test="productcode != null">#{productcode},</if>
+            <if test="actualid != null">#{actualid},</if>
+            <if test="auditProgName != null">#{auditProgName},</if>
+            <if test="auditTypeName != null">#{auditTypeName},</if>
+            <if test="intDate != null">#{intDate},</if>
+            <if test="businesstype != null">#{businesstype},</if>
+            <if test="businessstatus != null">#{businessstatus},</if>
+            <if test="tsflag != null">#{tsflag},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="topid != null">#{topid},</if>
+         </trim>
+    </insert>
+
+    <update id="updateOdsReject" parameterType="OdsReject">
+        update ods_reject
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="productcode != null">productcode = #{productcode},</if>
+            <if test="actualid != null">actualid = #{actualid},</if>
+            <if test="auditProgName != null">audit_prog_name = #{auditProgName},</if>
+            <if test="auditTypeName != null">audit_type_name = #{auditTypeName},</if>
+            <if test="intDate != null">int_date = #{intDate},</if>
+            <if test="businesstype != null">businesstype = #{businesstype},</if>
+            <if test="businessstatus != null">businessstatus = #{businessstatus},</if>
+            <if test="tsflag != null">tsflag = #{tsflag},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="topid != null">topid = #{topid},</if>
+        </trim>
+        where businessno = #{businessno}
+    </update>
+
+    <delete id="deleteOdsRejectByBusinessno" parameterType="String">
+        delete from ods_reject where businessno = #{businessno}
+    </delete>
+
+    <delete id="deleteOdsRejectByBusinessnos" parameterType="String">
+        delete from ods_reject where businessno in
+        <foreach item="businessno" collection="array" open="(" separator="," close=")">
+            #{businessno}
+        </foreach>
+    </delete>
+
+
+
+
+    <!-- 在对应的Mapper XML文件中 -->
+    <!--<select id="selectRejectedData" parameterType="java.util.Map" resultType="YourResultType">
+        with max_version as(
+        select topid,max(int_date) int_date
+        from bak_int_reject a
+        where int_date >= date_add(date_add(cast(now() as date), INTERVAL -25 DAY),INTERVAL 8 HOUR)
+        and int_date < date_add(cast(now() as date),INTERVAL 8 HOUR)
+        and audit_type_name not like '%手续费%'
+        and not exists(select 1 from bak_int_main_ori where topid = a.topid and datadate >=date_add(cast(now() as date), INTERVAL -25 DAY))
+        and not exists(select 1 from bak_int_main_ver where topid = a.topid and datadate >=date_add(cast(now() as date), INTERVAL -25 DAY))
+        group by a.topid
+        )
+        select c.businessno,c.productcode,b.*,c.businesstype,c.businessstatus,c.thirdbusinessflag,d.JointBusinessCode
+        from max_version a,bak_int_reject b,policy.plc_main c,policy.plp_endorse d
+        where a.topid = b.topid and a.INT_DATE  = b.int_date and a.topid = c.topid
+        and c.updatedate>=date_add(cast(now() as date), INTERVAL -25 DAY)
+        and b.audit_type_name not like '%手续费%'
+        and c.policyno like '66%' and c.businesstype in('66',   '68')
+        and c.businessstatus &lt;&gt; '00'
+        and not exists(select 1 from bak_int_main_ori where topid = a.topid and datadate >=date_add(cast(now() as date), INTERVAL -25 DAY))
+        and not exists(select 1 from bak_int_main_ver where topid = a.topid and datadate >=date_add(cast(now() as date), INTERVAL -25 DAY))
+        order by c.updatedate,c.businessno,b.AUDIT_TYPE_NAME
+    </select>-->
+
+</mapper>
