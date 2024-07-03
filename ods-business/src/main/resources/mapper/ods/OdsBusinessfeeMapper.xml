@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kevin.ods.mapper.OdsBusinessfeeMapper">
+    
+    <resultMap type="OdsBusinessfee" id="OdsBusinessfeeResult">
+        <result property="indicatorCode"    column="indicator_code"    />
+        <result property="underwritingTime"    column="underwriting_time"    />
+        <result property="dataSourceSystemCode"    column="data_source_system_code"    />
+        <result property="businessno"    column="businessno"    />
+        <result property="taxExclusiveAmountDifference"    column="tax_exclusive_amount_difference"    />
+        <result property="taxInclusiveAmountDifference"    column="tax_inclusive_amount_difference"    />
+        <result property="taxAmountDifference"    column="tax_amount_difference"    />
+        <result property="underwrittenTaxExclusiveAmount"    column="underwritten_tax_exclusive_amount"    />
+        <result property="underwrittenTaxInclusiveAmount"    column="underwritten_tax_inclusive_amount"    />
+        <result property="underwrittenTaxAmount"    column="underwritten_tax_amount"    />
+        <result property="paymentTaxExclusiveAmount"    column="payment_tax_exclusive_amount"    />
+        <result property="paymentTaxInclusiveAmount"    column="payment_tax_inclusive_amount"    />
+        <result property="paymentTaxAmount"    column="payment_tax_amount"    />
+        <result property="createdate"    column="createdate"    />
+        <result property="primaryIndicatorTolerance"    column="primary_indicator_tolerance"    />
+        <result property="detailAmountTolerance"    column="detail_amount_tolerance"    />
+        <result property="isCompleted"    column="is_completed"    />
+        <result property="mark"    column="mark"    />
+    </resultMap>
+
+    <sql id="selectOdsBusinessfeeVo">
+        select indicator_code, underwriting_time, data_source_system_code, businessno, tax_exclusive_amount_difference, tax_inclusive_amount_difference, tax_amount_difference, underwritten_tax_exclusive_amount, underwritten_tax_inclusive_amount, underwritten_tax_amount, payment_tax_exclusive_amount, payment_tax_inclusive_amount, payment_tax_amount, createdate, primary_indicator_tolerance, detail_amount_tolerance, is_completed, mark from ods_businessfee
+    </sql>
+
+    <select id="selectOdsBusinessfeeList" parameterType="OdsBusinessfee" resultMap="OdsBusinessfeeResult">
+        <include refid="selectOdsBusinessfeeVo"/>
+        <where>  
+            <if test="indicatorCode != null  and indicatorCode != ''"> and indicator_code = #{indicatorCode}</if>
+            <if test="underwritingTime != null "> and underwriting_time = #{underwritingTime}</if>
+            <if test="dataSourceSystemCode != null  and dataSourceSystemCode != ''"> and data_source_system_code = #{dataSourceSystemCode}</if>
+            <if test="businessno != null  and businessno != ''"> and businessno = #{businessno}</if>
+            <if test="taxExclusiveAmountDifference != null "> and tax_exclusive_amount_difference = #{taxExclusiveAmountDifference}</if>
+            <if test="taxInclusiveAmountDifference != null "> and tax_inclusive_amount_difference = #{taxInclusiveAmountDifference}</if>
+            <if test="taxAmountDifference != null "> and tax_amount_difference = #{taxAmountDifference}</if>
+            <if test="underwrittenTaxExclusiveAmount != null "> and underwritten_tax_exclusive_amount = #{underwrittenTaxExclusiveAmount}</if>
+            <if test="underwrittenTaxInclusiveAmount != null "> and underwritten_tax_inclusive_amount = #{underwrittenTaxInclusiveAmount}</if>
+            <if test="underwrittenTaxAmount != null "> and underwritten_tax_amount = #{underwrittenTaxAmount}</if>
+            <if test="paymentTaxExclusiveAmount != null "> and payment_tax_exclusive_amount = #{paymentTaxExclusiveAmount}</if>
+            <if test="paymentTaxInclusiveAmount != null "> and payment_tax_inclusive_amount = #{paymentTaxInclusiveAmount}</if>
+            <if test="paymentTaxAmount != null "> and payment_tax_amount = #{paymentTaxAmount}</if>
+            <if test="createdate != null "> and createdate = #{createdate}</if>
+            <if test="primaryIndicatorTolerance != null "> and primary_indicator_tolerance = #{primaryIndicatorTolerance}</if>
+            <if test="detailAmountTolerance != null "> and detail_amount_tolerance = #{detailAmountTolerance}</if>
+            <if test="isCompleted != null  and isCompleted != ''"> and is_completed = #{isCompleted}</if>
+            <if test="mark != null  and mark != ''"> and mark = #{mark}</if>
+        </where>
+    </select>
+    
+    <select id="selectOdsBusinessfeeByIndicatorCode" parameterType="String" resultMap="OdsBusinessfeeResult">
+        <include refid="selectOdsBusinessfeeVo"/>
+        where indicator_code = #{indicatorCode}
+    </select>
+        
+    <insert id="insertOdsBusinessfee" parameterType="OdsBusinessfee">
+        insert into ods_businessfee
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="indicatorCode != null">indicator_code,</if>
+            <if test="underwritingTime != null">underwriting_time,</if>
+            <if test="dataSourceSystemCode != null">data_source_system_code,</if>
+            <if test="businessno != null">businessno,</if>
+            <if test="taxExclusiveAmountDifference != null">tax_exclusive_amount_difference,</if>
+            <if test="taxInclusiveAmountDifference != null">tax_inclusive_amount_difference,</if>
+            <if test="taxAmountDifference != null">tax_amount_difference,</if>
+            <if test="underwrittenTaxExclusiveAmount != null">underwritten_tax_exclusive_amount,</if>
+            <if test="underwrittenTaxInclusiveAmount != null">underwritten_tax_inclusive_amount,</if>
+            <if test="underwrittenTaxAmount != null">underwritten_tax_amount,</if>
+            <if test="paymentTaxExclusiveAmount != null">payment_tax_exclusive_amount,</if>
+            <if test="paymentTaxInclusiveAmount != null">payment_tax_inclusive_amount,</if>
+            <if test="paymentTaxAmount != null">payment_tax_amount,</if>
+            <if test="createdate != null">createdate,</if>
+            <if test="primaryIndicatorTolerance != null">primary_indicator_tolerance,</if>
+            <if test="detailAmountTolerance != null">detail_amount_tolerance,</if>
+            <if test="isCompleted != null">is_completed,</if>
+            <if test="mark != null">mark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="indicatorCode != null">#{indicatorCode},</if>
+            <if test="underwritingTime != null">#{underwritingTime},</if>
+            <if test="dataSourceSystemCode != null">#{dataSourceSystemCode},</if>
+            <if test="businessno != null">#{businessno},</if>
+            <if test="taxExclusiveAmountDifference != null">#{taxExclusiveAmountDifference},</if>
+            <if test="taxInclusiveAmountDifference != null">#{taxInclusiveAmountDifference},</if>
+            <if test="taxAmountDifference != null">#{taxAmountDifference},</if>
+            <if test="underwrittenTaxExclusiveAmount != null">#{underwrittenTaxExclusiveAmount},</if>
+            <if test="underwrittenTaxInclusiveAmount != null">#{underwrittenTaxInclusiveAmount},</if>
+            <if test="underwrittenTaxAmount != null">#{underwrittenTaxAmount},</if>
+            <if test="paymentTaxExclusiveAmount != null">#{paymentTaxExclusiveAmount},</if>
+            <if test="paymentTaxInclusiveAmount != null">#{paymentTaxInclusiveAmount},</if>
+            <if test="paymentTaxAmount != null">#{paymentTaxAmount},</if>
+            <if test="createdate != null">#{createdate},</if>
+            <if test="primaryIndicatorTolerance != null">#{primaryIndicatorTolerance},</if>
+            <if test="detailAmountTolerance != null">#{detailAmountTolerance},</if>
+            <if test="isCompleted != null">#{isCompleted},</if>
+            <if test="mark != null">#{mark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateOdsBusinessfee" parameterType="OdsBusinessfee">
+        update ods_businessfee
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="underwritingTime != null">underwriting_time = #{underwritingTime},</if>
+            <if test="dataSourceSystemCode != null">data_source_system_code = #{dataSourceSystemCode},</if>
+            <if test="businessno != null">businessno = #{businessno},</if>
+            <if test="taxExclusiveAmountDifference != null">tax_exclusive_amount_difference = #{taxExclusiveAmountDifference},</if>
+            <if test="taxInclusiveAmountDifference != null">tax_inclusive_amount_difference = #{taxInclusiveAmountDifference},</if>
+            <if test="taxAmountDifference != null">tax_amount_difference = #{taxAmountDifference},</if>
+            <if test="underwrittenTaxExclusiveAmount != null">underwritten_tax_exclusive_amount = #{underwrittenTaxExclusiveAmount},</if>
+            <if test="underwrittenTaxInclusiveAmount != null">underwritten_tax_inclusive_amount = #{underwrittenTaxInclusiveAmount},</if>
+            <if test="underwrittenTaxAmount != null">underwritten_tax_amount = #{underwrittenTaxAmount},</if>
+            <if test="paymentTaxExclusiveAmount != null">payment_tax_exclusive_amount = #{paymentTaxExclusiveAmount},</if>
+            <if test="paymentTaxInclusiveAmount != null">payment_tax_inclusive_amount = #{paymentTaxInclusiveAmount},</if>
+            <if test="paymentTaxAmount != null">payment_tax_amount = #{paymentTaxAmount},</if>
+            <if test="createdate != null">createdate = #{createdate},</if>
+            <if test="primaryIndicatorTolerance != null">primary_indicator_tolerance = #{primaryIndicatorTolerance},</if>
+            <if test="detailAmountTolerance != null">detail_amount_tolerance = #{detailAmountTolerance},</if>
+            <if test="isCompleted != null">is_completed = #{isCompleted},</if>
+            <if test="mark != null">mark = #{mark},</if>
+        </trim>
+        where indicator_code = #{indicatorCode}
+    </update>
+
+    <delete id="deleteOdsBusinessfeeByIndicatorCode" parameterType="String">
+        delete from ods_businessfee where indicator_code = #{indicatorCode}
+    </delete>
+
+    <delete id="deleteOdsBusinessfeeByIndicatorCodes" parameterType="String">
+        delete from ods_businessfee where indicator_code in 
+        <foreach item="indicatorCode" collection="array" open="(" separator="," close=")">
+            #{indicatorCode}
+        </foreach>
+    </delete>
+</mapper>

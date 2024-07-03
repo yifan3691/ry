@@ -14,7 +14,7 @@ import java.util.Date;
  * @description 业财
  * @date 2024/6/18 14:45:06
  */
-public class BusinessFee extends BaseEntity {
+public class OdsBusinessfee extends BaseEntity {
 
 
     /** 指标代码 */
@@ -31,7 +31,7 @@ public class BusinessFee extends BaseEntity {
 
     /** 业务单号 */
     @Excel(name = "业务单号")
-    private String businessNo;
+    private String businessno;
 
     /** 不含税金额差异 */
     @Excel(name = "不含税金额差异")
@@ -71,7 +71,7 @@ public class BusinessFee extends BaseEntity {
 
     /** 创建时间 */
     @Excel(name = "创建时间", dateFormat = "yyyy-MM-dd HH:mm:ss")
-    private Date createDate;
+    private Date createdate;
 
     /** 一级指标金额差异容忍度 */
     @Excel(name = "一级指标金额差异容忍度")
@@ -81,6 +81,10 @@ public class BusinessFee extends BaseEntity {
     @Excel(name = "明细金额差异容忍度")
     private BigDecimal detailAmountTolerance;
 
+    private String isCompleted;
+
+
+    private String mark;
 
     public Date getUnderwritingTime() {
         return underwritingTime;
@@ -106,12 +110,12 @@ public class BusinessFee extends BaseEntity {
         this.dataSourceSystemCode = dataSourceSystemCode;
     }
 
-    public String getBusinessNo() {
-        return businessNo;
+    public String getBusinessno() {
+        return businessno;
     }
 
-    public void setBusinessNo(String businessNo) {
-        this.businessNo = businessNo;
+    public void setBusinessno(String businessno) {
+        this.businessno = businessno;
     }
 
     public BigDecimal getTaxExclusiveAmountDifference() {
@@ -186,12 +190,12 @@ public class BusinessFee extends BaseEntity {
         this.paymentTaxAmount = paymentTaxAmount;
     }
 
-    public Date getCreateDate() {
-        return createDate;
+    public Date getCreatedate() {
+        return createdate;
     }
 
-    public void setCreateDate(Date createDate) {
-        this.createDate = createDate;
+    public void setCreatedate(Date createdate) {
+        this.createdate = createdate;
     }
 
     public BigDecimal getPrimaryIndicatorTolerance() {
@@ -208,5 +212,21 @@ public class BusinessFee extends BaseEntity {
 
     public void setDetailAmountTolerance(BigDecimal detailAmountTolerance) {
         this.detailAmountTolerance = detailAmountTolerance;
+    }
+
+    public String getIsCompleted() {
+        return isCompleted;
+    }
+
+    public void setIsCompleted(String isCompleted) {
+        this.isCompleted = isCompleted;
+    }
+
+    public String getMark() {
+        return mark;
+    }
+
+    public void setMark(String mark) {
+        this.mark = mark;
     }
 }

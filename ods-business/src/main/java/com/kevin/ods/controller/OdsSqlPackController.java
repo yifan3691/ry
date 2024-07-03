@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 
-import com.kevin.ods.domain.BusinessFee;
+import com.kevin.ods.domain.OdsBusinessfee;
 import com.ruoyi.common.annotation.Anonymous;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -154,10 +154,10 @@ public class OdsSqlPackController extends BaseController
     @Anonymous
     @PostMapping("/importData")
     public void importData(MultipartFile file, boolean updateSupport,HttpServletResponse response) throws Exception {
-        ExcelUtil<BusinessFee> util = new ExcelUtil<BusinessFee>(BusinessFee.class);
-        List<BusinessFee> userList = util.importExcel(file.getInputStream());
+        ExcelUtil<OdsBusinessfee> util = new ExcelUtil<OdsBusinessfee>(OdsBusinessfee.class);
+        List<OdsBusinessfee> userList = util.importExcel(file.getInputStream());
 
-        for (BusinessFee businessFee : userList) {
+        for (OdsBusinessfee businessFee : userList) {
             if (businessFee.getTaxExclusiveAmountDifference().compareTo(BigDecimal.ZERO) == 1) {
 //业务处理
             }
