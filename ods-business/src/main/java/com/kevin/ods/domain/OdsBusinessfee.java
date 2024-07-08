@@ -81,9 +81,10 @@ public class OdsBusinessfee extends BaseEntity {
     @Excel(name = "明细金额差异容忍度")
     private BigDecimal detailAmountTolerance;
 
+    @Excel(name = "是否已完成")
     private String isCompleted;
 
-
+    @Excel(name = "备注")
     private String mark;
 
     public Date getUnderwritingTime() {

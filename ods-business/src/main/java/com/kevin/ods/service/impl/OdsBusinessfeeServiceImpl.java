@@ -1,5 +1,6 @@
 package com.kevin.ods.service.impl;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import com.ruoyi.common.annotation.DataSource;
@@ -56,6 +57,23 @@ public class OdsBusinessfeeServiceImpl implements IOdsBusinessfeeService
     @Override
     public int insertOdsBusinessfee(OdsBusinessfee odsBusinessfee)
     {
+        if (odsBusinessfee != null) {
+            if (odsBusinessfee.getTaxExclusiveAmountDifference().compareTo(BigDecimal.ZERO) == 0) {
+                odsBusinessfee.setMark("差异为0,不处理");
+                odsBusinessfee.setIsCompleted("1");
+            }else if (odsBusinessfee.getPaymentTaxExclusiveAmount() == null) {
+                odsBusinessfee.setMark("收付无数据,待核实");
+            }else if (odsBusinessfee.getUnderwrittenTaxExclusiveAmount() == null) {
+                odsBusinessfee.setMark("核心无数据,待核实");
+                //TODO 稍后查接口 看是否有数据
+            }else if (odsBusinessfee.getUnderwrittenTaxInclusiveAmount().compareTo(BigDecimal.ZERO) == 0) {
+                odsBusinessfee.setMark("兑换率为0,待核实");
+                //TODO 稍后查接口 看是否有数据
+            }
+        }
+
+
+        System.out.println(odsBusinessfee.getMark());
         return odsBusinessfeeMapper.insertOdsBusinessfee(odsBusinessfee);
     }
 
