@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kevin.ods.mapper.ExcelTableColumnMapper">
+
+    <resultMap type="ExcelTableColumn" id="ExcelTableColumnResult">
+        <result property="columnId"    column="column_id"    />
+        <result property="tableId"    column="table_id"    />
+        <result property="columnName"    column="column_name"    />
+        <result property="columnComment"    column="column_comment"    />
+        <result property="columnType"    column="column_type"    />
+        <result property="javaType"    column="java_type"    />
+        <result property="sort"    column="sort"    />
+        <result property="isPk"    column="is_pk"    />
+        <result property="isRequired"    column="is_required"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectExcelTableColumnVo">
+        select column_id, table_id, column_name, column_comment, column_type, java_type, sort, is_pk, is_required, create_time from excel_table_column
+    </sql>
+
+    <select id="selectExcelTableColumnList" parameterType="ExcelTableColumn" resultMap="ExcelTableColumnResult">
+        <include refid="selectExcelTableColumnVo"/>
+        <where>
+            <if test="tableId != null"> and table_id = #{tableId}</if>
+            <if test="columnName != null  and columnName != ''"> and column_name like concat('%', #{columnName}, '%')</if>
+            <if test="columnComment != null  and columnComment != ''"> and column_comment like concat('%', #{columnComment}, '%')</if>
+            <if test="columnType != null  and columnType != ''"> and column_type = #{columnType}</if>
+        </where>
+        order by sort
+    </select>
+
+    <select id="selectExcelTableColumnById" parameterType="Long" resultMap="ExcelTableColumnResult">
+        <include refid="selectExcelTableColumnVo"/>
+        where column_id = #{columnId}
+    </select>
+
+    <select id="selectExcelTableColumnByTableId" parameterType="Long" resultMap="ExcelTableColumnResult">
+        <include refid="selectExcelTableColumnVo"/>
+        where table_id = #{tableId}
+        order by sort
+    </select>
+
+    <insert id="insertExcelTableColumn" parameterType="ExcelTableColumn" useGeneratedKeys="true" keyProperty="columnId">
+        insert into excel_table_column
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="tableId != null">table_id,</if>
+            <if test="columnName != null">column_name,</if>
+            <if test="columnComment != null">column_comment,</if>
+            <if test="columnType != null">column_type,</if>
+            <if test="javaType != null">java_type,</if>
+            <if test="sort != null">sort,</if>
+            <if test="isPk != null">is_pk,</if>
+            <if test="isRequired != null">is_required,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="tableId != null">#{tableId},</if>
+            <if test="columnName != null">#{columnName},</if>
+            <if test="columnComment != null">#{columnComment},</if>
+            <if test="columnType != null">#{columnType},</if>
+            <if test="javaType != null">#{javaType},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="isPk != null">#{isPk},</if>
+            <if test="isRequired != null">#{isRequired},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <insert id="batchInsertExcelTableColumn">
+        insert into excel_table_column (table_id, column_name, column_comment, column_type, java_type, sort, is_pk, is_required, create_time)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.tableId}, #{item.columnName}, #{item.columnComment}, #{item.columnType}, #{item.javaType}, #{item.sort}, #{item.isPk}, #{item.isRequired}, sysdate())
+        </foreach>
+    </insert>
+
+    <update id="updateExcelTableColumn" parameterType="ExcelTableColumn">
+        update excel_table_column
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="tableId != null">table_id = #{tableId},</if>
+            <if test="columnName != null">column_name = #{columnName},</if>
+            <if test="columnComment != null">column_comment = #{columnComment},</if>
+            <if test="columnType != null">column_type = #{columnType},</if>
+            <if test="javaType != null">java_type = #{javaType},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="isPk != null">is_pk = #{isPk},</if>
+            <if test="isRequired != null">is_required = #{isRequired},</if>
+        </trim>
+        where column_id = #{columnId}
+    </update>
+
+    <delete id="deleteExcelTableColumnById" parameterType="Long">
+        delete from excel_table_column where column_id = #{columnId}
+    </delete>
+
+    <delete id="deleteExcelTableColumnByTableId" parameterType="Long">
+        delete from excel_table_column where table_id = #{tableId}
+    </delete>
+
+    <delete id="deleteExcelTableColumnByIds" parameterType="String">
+        delete from excel_table_column where column_id in 
+        <foreach collection="array" item="columnId" open="(" separator="," close=")">
+            #{columnId}
+        </foreach>
+    </delete>
+
+</mapper>
