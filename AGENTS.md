@@ -1,105 +1,105 @@
-# AGENTS.md - Coding Guidelines for RuoYi Project
+# AGENTS.md - RuoYi项目开发规范
 
-## Project Overview
+## 项目概述
 
 RuoYi v3.8.7 - Spring Boot + Vue前后端分离的快速开发框架
-- **Backend**: Java 1.8, Spring Boot 2.5.15, Spring Framework 5.3.33
-- **Frontend**: Vue 2.6.12, Element UI 2.15.14
-- **Build Tool**: Maven 3.x
-- **Database**: MySQL (with Druid connection pool)
+- **后端**: Java 1.8, Spring Boot 2.5.15, Spring Framework 5.3.33
+- **前端**: Vue 2.6.12, Element UI 2.15.14
+- **构建工具**: Maven 3.x
+- **数据库**: MySQL (使用Druid连接池)
 - **ORM**: MyBatis
 
-## Build Commands
+## 构建命令
 
-### Backend (Java)
+### 后端 (Java)
 
 ```bash
-# Build entire project
+# 构建整个项目
 mvn clean install
 
-# Build specific module
+# 构建特定模块
 cd ruoyi-admin && mvn clean install
 
-# Skip tests (faster build)
+# 跳过测试（更快构建）
 mvn clean install -DskipTests
 
-# Run application
+# 运行应用程序
 cd ruoyi-admin && mvn spring-boot:run
 
-# Package for production
+# 生产环境打包
 mvn clean package -DskipTests
 ```
 
-### Frontend (Vue)
+### 前端 (Vue)
 
-Located in `ruoyi-vue/if-based-on-vue/`:
+位于 `ruoyi-vue/if-based-on-vue/` 目录：
 
 ```bash
 cd ruoyi-vue/if-based-on-vue
 
-# Install dependencies
+# 安装依赖
 npm install
 
-# Development server
+# 开发服务器
 npm run dev
 
-# Production build
+# 生产环境构建
 npm run build:prod
 
-# Staging build
+# 测试环境构建
 npm run build:stage
 
-# Lint code
+# 代码检查
 npm run lint
 
-# Fix linting issues
+# 自动修复代码问题
 npm run lint -- --fix
 ```
 
-## Code Style Guidelines
+## 代码规范
 
-### Java Code Style
+### Java代码规范
 
-1. **Formatting**:
-   - 4 spaces indentation
-   - Opening brace on same line (K&R style)
-   - Max line length: 120 characters
-   - UTF-8 encoding
+1. **格式化**:
+   - 4个空格缩进
+   - 左大括号放在同一行（K&R风格）
+   - 最大行长度：120个字符
+   - UTF-8编码
 
-2. **Naming Conventions**:
-   - Classes: PascalCase (e.g., `SysUserController`)
-   - Methods/Variables: camelCase (e.g., `getUserList()`)
-   - Constants: UPPER_SNAKE_CASE
-   - Interfaces: Prefix with 'I' for services (e.g., `ISysUserService`)
-   - Mapper interfaces: Suffix with 'Mapper' (e.g., `SysUserMapper`)
+2. **命名约定**:
+   - 类名：PascalCase（例如：`SysUserController`）
+   - 方法/变量：camelCase（例如：`getUserList()`）
+   - 常量：UPPER_SNAKE_CASE
+   - 接口：服务类以'I'为前缀（例如：`ISysUserService`）
+   - Mapper接口：以'Mapper'为后缀（例如：`SysUserMapper`）
 
-3. **Package Structure**:
+3. **包结构**:
    ```
    com.ruoyi.{module}/
-   ├── controller/     # REST controllers (extends BaseController)
-   ├── service/        # Service interfaces (I prefix)
-   │   └── impl/       # Service implementations
-   ├── mapper/         # MyBatis mapper interfaces
-   ├── domain/         # Entity/POJO classes (extends BaseEntity)
-   └── util/           # Utility classes
+   ├── controller/     # REST控制器（继承BaseController）
+   ├── service/        # 服务接口（I前缀）
+   │   └── impl/       # 服务实现类
+   ├── mapper/         # MyBatis Mapper接口
+   ├── domain/         # 实体类（继承BaseEntity）
+   └── util/           # 工具类
    ```
 
-4. **Domain Classes**:
-   - Extend `BaseEntity` for common fields
-   - Use `@Excel` annotation for export functionality
-   - Include `serialVersionUID`
-   - Use validation annotations (`@NotBlank`, `@Size`, etc.)
-   - Override `toString()` using `ToStringBuilder`
+4. **Domain类规范**:
+   - 继承`BaseEntity`以获取公共字段
+   - 使用`@Excel`注解实现导出功能
+   - 包含`serialVersionUID`
+   - 使用验证注解（`@NotBlank`、`@Size`等）
+   - 使用`ToStringBuilder`重写`toString()`方法
 
-5. **Controller Conventions**:
-   - Annotate with `@RestController` and `@RequestMapping`
-   - Extend `BaseController`
-   - Use `@PreAuthorize("@ss.hasPermi('module:function:action')")` for permissions
-   - Use `@Log(title = "描述", businessType = BusinessType.XXX)` for operation logging
-   - Return `AjaxResult` or `TableDataInfo`
-   - Use `@Validated` for request validation
+5. **Controller规范**:
+   - 使用`@RestController`和`@RequestMapping`注解
+   - 继承`BaseController`
+   - 使用`@PreAuthorize("@ss.hasPermi('module:function:action')")`进行权限控制
+   - 使用`@Log(title = "描述", businessType = BusinessType.XXX)`记录操作日志
+   - 返回`AjaxResult`或`TableDataInfo`
+   - 使用`@Validated`进行请求参数验证
 
-6. **Import Order**:
+6. **Import顺序**:
    ```java
    // 1. java.*
    import java.util.List;
@@ -107,94 +107,94 @@ npm run lint -- --fix
    // 2. javax.*
    import javax.servlet.http.HttpServletResponse;
    
-   // 3. Third-party libraries
+   // 3. 第三方库
    import org.springframework.beans.factory.annotation.Autowired;
    
-   // 4. Project imports
+   // 4. 项目内部导入
    import com.ruoyi.common.core.controller.BaseController;
    import com.ruoyi.system.domain.SysUser;
    ```
 
-7. **Comments**: Use Chinese comments for business logic descriptions
+7. **注释**: 业务逻辑描述使用中文注释
 
-### Vue/JavaScript Code Style
+### Vue/JavaScript代码规范
 
-Located in `.eslintrc.js`:
+位于 `.eslintrc.js` 文件：
 
-1. **Formatting**:
-   - 2 spaces indentation
-   - Single quotes
-   - No semicolons
-   - LF line endings
-   - Trailing newline required
+1. **格式化**:
+   - 2个空格缩进
+   - 单引号
+   - 不使用分号
+   - LF换行符
+   - 文件末尾必须有换行符
 
-2. **Key ESLint Rules**:
+2. **主要ESLint规则**:
    - `comma-dangle: never`
    - `eqeqeq: always`
    - `camelcase: off`
-   - `no-console: off` (allowed)
-   - Vue components: PascalCase naming
+   - `no-console: off`（允许使用console）
+   - Vue组件：PascalCase命名
 
-3. **EditorConfig** (2-space indent, trim whitespace)
+3. **EditorConfig**（2空格缩进，去除多余空格）
 
-## Architecture Patterns
+## 架构模式
 
-### Backend
+### 后端
 
-- **Controller Layer**: REST API endpoints, request validation, permission checks
-- **Service Layer**: Business logic, transaction management
-- **Mapper Layer**: Data access (MyBatis XML mappers in `resources/mapper/`)
-- **Domain Layer**: Entity classes with validation and Excel annotations
+- **Controller层**: REST API端点，请求验证，权限检查
+- **Service层**: 业务逻辑，事务管理
+- **Mapper层**: 数据访问（MyBatis XML映射文件在`resources/mapper/`目录）
+- **Domain层**: 实体类，包含验证和Excel注解
 
-### Security
+### 安全
 
-- JWT-based authentication
-- Permission format: `module:function:action` (e.g., `system:user:list`)
-- Use `@ss.hasPermi()` for method-level authorization
+- 基于JWT的身份验证
+- 权限格式：`module:function:action`（例如：`system:user:list`）
+- 使用`@ss.hasPermi()`进行方法级授权
 
-### Error Handling
+### 错误处理
 
-- Use `AjaxResult.success()` and `AjaxResult.error()` for responses
-- Business exceptions extend `BaseException`
-- Global exception handler in `GlobalExceptionHandler`
+- 使用`AjaxResult.success()`和`AjaxResult.error()`返回响应
+- 业务异常继承`BaseException`
+- 全局异常处理器在`GlobalExceptionHandler`中
 
-## Module Structure
+## 模块结构
 
 ```
-ruoyi/                          # Root
-├── ruoyi-admin/               # Web entry point, controllers
-├── ruoyi-framework/           # Framework config, security, AOP
-├── ruoyi-system/              # System module (user, role, menu, etc.)
-├── ruoyi-quartz/              # Scheduled tasks
-├── ruoyi-generator/           # Code generation
-├── ruoyi-common/              # Common utilities, constants
-├── ods-business/              # Custom business module
-└── ruoyi-vue/if-based-on-vue/ # Frontend Vue project
+ruoyi/                          # 根目录
+├── ruoyi-admin/               # Web入口，控制器
+├── ruoyi-framework/           # 框架配置，安全，AOP
+├── ruoyi-system/              # 系统模块（用户，角色，菜单等）
+├── ruoyi-quartz/              # 定时任务
+├── ruoyi-generator/           # 代码生成
+├── ruoyi-common/              # 公共工具类和常量
+├── ods-business/              # 自定义业务模块
+└── ruoyi-vue/if-based-on-vue/ # 前端Vue项目
 ```
 
-## Database Conventions
+## 数据库约定
 
-- Table prefix: `sys_` for system tables
-- Primary key: `{table}_id` (e.g., `user_id`)
-- Common fields: `create_by`, `create_time`, `update_by`, `update_time`, `remark`
-- Soft delete: use `del_flag` (0=normal, 2=deleted)
+- 表前缀：`sys_`用于系统表
+- 主键：`{table}_id`（例如：`user_id`）
+- 公共字段：`create_by`、`create_time`、`update_by`、`update_time`、`remark`
+- 软删除：使用`del_flag`（0=正常，2=已删除）
 
-## Testing
+## 测试
 
-- No unit tests currently in the project
-- Manual testing via Swagger UI at `/swagger-ui/index.html`
-- Use test profiles for development (`application-dev.yml`)
+- 项目中暂无单元测试
+- 通过Swagger UI进行手动测试（`/swagger-ui/index.html`）
+- 使用开发环境配置（`application-dev.yml`）
 
-## Common Utilities
+## 常用工具类
 
-- **ExcelUtil**: Excel import/export
-- **SecurityUtils**: Get current user info
-- **StringUtils**: String utilities (from Apache Commons)
-- **DateUtils**: Date formatting and parsing
+- **ExcelUtil**: Excel导入导出
+- **SecurityUtils**: 获取当前用户信息
+- **StringUtils**: 字符串工具类（来自Apache Commons）
+- **DateUtils**: 日期格式化和解析
 
-## References
+## 参考资料
 
-- RuoYi Documentation: http://doc.ruoyi.vip
+- RuoYi文档：http://doc.ruoyi.vip
 - Spring Boot: 2.5.15
 - Vue.js: 2.6.12
 - Element UI: 2.15.14
