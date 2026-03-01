@@ -5,44 +5,48 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import com.ruoyi.common.core.page.TableDataInfo;
-
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.context.AnalysisContext;
+import com.alibaba.excel.event.AnalysisEventListener;
 import com.kevin.ods.domain.ExcelTable;
 import com.kevin.ods.domain.ExcelTableColumn;
+import com.kevin.ods.domain.ExcelUploadBatchResult;
+import com.kevin.ods.domain.ExcelUploadSheetResult;
 import com.kevin.ods.mapper.ExcelTableColumnMapper;
 import com.kevin.ods.mapper.ExcelTableMapper;
 import com.kevin.ods.service.IExcelTableService;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
 import net.sourceforge.pinyin4j.PinyinHelper;
 import net.sourceforge.pinyin4j.format.HanyuPinyinCaseType;
 import net.sourceforge.pinyin4j.format.HanyuPinyinOutputFormat;
 import net.sourceforge.pinyin4j.format.HanyuPinyinToneType;
 import net.sourceforge.pinyin4j.format.exception.BadHanyuPinyinOutputFormatCombination;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Excel上传表Service业务层处理
- * 
+ *
  * @author kevin
  * @date 2024-01-08
  */
@@ -51,16 +55,34 @@ public class ExcelTableServiceImpl implements IExcelTableService
 {
     @Autowired
     private ExcelTableMapper excelTableMapper;
-    
+
     @Autowired
     private ExcelTableColumnMapper excelTableColumnMapper;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     /** 批量插入大小 */
     private static final int BATCH_SIZE = 500;
 
+    /** 导入模式：全部sheet */
+    private static final String IMPORT_MODE_ALL_SHEETS = "ALL_SHEETS";
+
+    /** 导入模式：指定sheet */
+    private static final String IMPORT_MODE_SELECTED_SHEETS = "SELECTED_SHEETS";
+
+    /** 日期格式列表 */
+    private static final String[] DATE_PATTERNS = new String[] {
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyy/MM/dd HH:mm:ss",
+        "yyyy-MM-dd",
+        "yyyy/MM/dd",
+        "yyyyMMdd"
+    };
+
     /**
      * 查询Excel上传表
-     * 
+     *
      * @param tableId Excel上传表主键
      * @return Excel上传表
      */
@@ -78,7 +100,7 @@ public class ExcelTableServiceImpl implements IExcelTableService
 
     /**
      * 查询Excel上传表列表
-     * 
+     *
      * @param excelTable Excel上传表
      * @return Excel上传表
      */
@@ -89,15 +111,51 @@ public class ExcelTableServiceImpl implements IExcelTableService
     }
 
     /**
-     * 上传Excel并创建表
-     * 
+     * 上传Excel并创建表（兼容旧方法，默认导入全部sheet并返回第一个成功sheet结果）
+     *
      * @param file Excel文件
      * @param tableComment 表描述
      * @return Excel上传表信息
      */
     @Override
-    @Transactional
     public ExcelTable uploadExcel(MultipartFile file, String tableComment)
+    {
+        ExcelUploadBatchResult batchResult = uploadExcelBatch(file, tableComment, IMPORT_MODE_ALL_SHEETS, null);
+        if (batchResult.getSheetResults() == null || batchResult.getSheetResults().isEmpty())
+        {
+            throw new ServiceException("上传失败：未检测到可处理的sheet");
+        }
+
+        for (ExcelUploadSheetResult sheetResult : batchResult.getSheetResults())
+        {
+            if (sheetResult.isSuccess())
+            {
+                ExcelTable excelTable = new ExcelTable();
+                excelTable.setTableId(sheetResult.getTableId());
+                excelTable.setTableName(sheetResult.getTableName());
+                excelTable.setTableComment(sheetResult.getTableComment());
+                excelTable.setFileName(batchResult.getFileName());
+                excelTable.setRowCount(sheetResult.getRowCount());
+                excelTable.setColumns(sheetResult.getColumns());
+                excelTable.setNewTable(sheetResult.isNewTable());
+                return excelTable;
+            }
+        }
+
+        throw new ServiceException("上传失败：" + batchResult.getSheetResults().get(0).getMessage());
+    }
+
+    /**
+     * 上传Excel并按sheet批量建表
+     *
+     * @param file Excel文件
+     * @param tableComment 表描述（基础描述）
+     * @param importMode 导入模式：ALL_SHEETS 或 SELECTED_SHEETS
+     * @param sheetNames 指定sheet名称（逗号分隔，仅在SELECTED_SHEETS时生效）
+     * @return 批量上传结果
+     */
+    @Override
+    public ExcelUploadBatchResult uploadExcelBatch(MultipartFile file, String tableComment, String importMode, String sheetNames)
     {
         if (file == null || file.isEmpty())
         {
@@ -110,243 +168,427 @@ public class ExcelTableServiceImpl implements IExcelTableService
             throw new ServiceException("文件名不能为空");
         }
 
-        // 从文件名提取表描述
         if (StringUtils.isEmpty(tableComment))
         {
-            tableComment = fileName.substring(0, fileName.lastIndexOf('.'));
+            int suffixIndex = fileName.lastIndexOf('.');
+            tableComment = suffixIndex > 0 ? fileName.substring(0, suffixIndex) : fileName;
         }
 
-        // 检查空文件
-        try (InputStream is = file.getInputStream())
+        List<SheetMeta> sheetMetas = resolveTargetSheets(file, importMode, sheetNames);
+        if (sheetMetas.isEmpty())
         {
-            Workbook workbook = WorkbookFactory.create(is);
-            Sheet sheet = workbook.getSheetAt(0);
-            
-            if (sheet.getPhysicalNumberOfRows() == 0)
-            {
-                throw new ServiceException("Excel文件为空，无法创建表");
-            }
-
-            // 获取表头行
-            Row headerRow = sheet.getRow(0);
-            if (headerRow == null)
-            {
-                throw new ServiceException("Excel表头为空，无法创建表");
-            }
-
-            // 解析列信息
-            List<ExcelTableColumn> columns = parseColumns(sheet, headerRow);
-            if (columns.isEmpty())
-            {
-                throw new ServiceException("未检测到有效的表头列");
-            }
-
-            // 生成结构Hash
-            String structureHash = generateStructureHash(columns);
-
-            // 检查表是否已存在
-            ExcelTable existingTable = excelTableMapper.selectExcelTableByHash(structureHash);
-            if (existingTable != null)
-            {
-                existingTable.setNewTable(false);
-                List<ExcelTableColumn> existingColumns = excelTableColumnMapper.selectExcelTableColumnByTableId(existingTable.getTableId());
-                existingTable.setColumns(existingColumns);
-                return existingTable;
-            }
-
-            // 生成表名
-            String tableName = generateTableName();
-
-            // 创建新表对象
-            ExcelTable excelTable = new ExcelTable();
-            excelTable.setTableName(tableName);
-            excelTable.setTableComment(tableComment);
-            excelTable.setStructureHash(structureHash);
-            excelTable.setFileName(fileName);
-            excelTable.setStatus("0");
-            excelTable.setCreateBy(SecurityUtils.getUsername());
-            excelTable.setNewTable(true);
-
-            // 保存表信息
-            excelTableMapper.insertExcelTable(excelTable);
-
-            // 设置列的表ID和排序
-            for (int i = 0; i < columns.size(); i++)
-            {
-                ExcelTableColumn column = columns.get(i);
-                column.setTableId(excelTable.getTableId());
-                column.setSort(i);
-                column.setIsPk("0");
-                column.setIsRequired("0");
-            }
-
-            // 批量保存列信息
-            excelTableColumnMapper.batchInsertExcelTableColumn(columns);
-            excelTable.setColumns(columns);
-
-            // 创建数据库表
-            createDatabaseTable(tableName, tableComment, columns);
-
-            // 插入数据
-            int rowCount = insertExcelData(sheet, tableName, columns);
-            excelTable.setRowCount(rowCount);
-
-            // 更新行数
-            ExcelTable updateTable = new ExcelTable();
-            updateTable.setTableId(excelTable.getTableId());
-            updateTable.setRowCount(rowCount);
-            excelTableMapper.updateExcelTable(updateTable);
-
-            return excelTable;
+            throw new ServiceException("未找到可导入的sheet");
         }
-        catch (IOException e)
+
+        String batchId = String.valueOf(System.currentTimeMillis());
+        boolean multiSheet = sheetMetas.size() > 1;
+
+        ExcelUploadBatchResult batchResult = new ExcelUploadBatchResult();
+        batchResult.setBatchId(batchId);
+        batchResult.setFileName(fileName);
+        batchResult.setTotalSheets(sheetMetas.size());
+
+        List<ExcelUploadSheetResult> sheetResults = new ArrayList<>();
+        int successSheets = 0;
+        int failedSheets = 0;
+        int newTables = 0;
+        int existingTables = 0;
+        int totalRows = 0;
+
+        for (SheetMeta sheetMeta : sheetMetas)
         {
-            throw new ServiceException("读取Excel文件失败: " + e.getMessage());
+            ExcelUploadSheetResult sheetResult = new ExcelUploadSheetResult();
+            sheetResult.setSheetNo(sheetMeta.getSheetNo());
+            sheetResult.setSheetName(sheetMeta.getSheetName());
+
+            try
+            {
+                final String finalTableComment = tableComment;
+                ExcelUploadSheetResult txResult = transactionTemplate.execute(status -> {
+                    try
+                    {
+                        return processSingleSheet(file, finalTableComment, fileName, batchId, sheetMeta, multiSheet);
+                    }
+                    catch (RuntimeException e)
+                    {
+                        status.setRollbackOnly();
+                        throw e;
+                    }
+                });
+
+                if (txResult == null)
+                {
+                    throw new ServiceException("sheet处理结果为空");
+                }
+
+                sheetResult = txResult;
+            }
+            catch (Exception e)
+            {
+                sheetResult.setSuccess(false);
+                String message = StringUtils.isNotEmpty(e.getMessage()) ? e.getMessage() : "未知异常";
+                sheetResult.setMessage(message);
+            }
+
+            if (sheetResult.isSuccess())
+            {
+                successSheets++;
+                totalRows += sheetResult.getRowCount() == null ? 0 : sheetResult.getRowCount();
+                if (sheetResult.isNewTable())
+                {
+                    newTables++;
+                }
+                else
+                {
+                    existingTables++;
+                }
+            }
+            else
+            {
+                failedSheets++;
+            }
+
+            sheetResults.add(sheetResult);
         }
+
+        batchResult.setSuccessSheets(successSheets);
+        batchResult.setFailedSheets(failedSheets);
+        batchResult.setNewTables(newTables);
+        batchResult.setExistingTables(existingTables);
+        batchResult.setTotalRows(totalRows);
+        batchResult.setSheetResults(sheetResults);
+
+        return batchResult;
     }
 
     /**
-     * 解析Excel列信息
+     * 处理单个sheet
      */
-    private List<ExcelTableColumn> parseColumns(Sheet sheet, Row headerRow)
+    private ExcelUploadSheetResult processSingleSheet(MultipartFile file, String tableComment, String fileName,
+                                                      String batchId, SheetMeta sheetMeta, boolean multiSheet)
     {
-        List<ExcelTableColumn> columns = new ArrayList<>();
-        
-        // 获取数据行用于推断类型（第二行或第三行）
-        Row dataRow = null;
-        for (int i = 1; i <= sheet.getLastRowNum(); i++)
+        ExcelParseResult parseResult;
+        try
         {
-            Row row = sheet.getRow(i);
-            if (row != null && row.getPhysicalNumberOfCells() > 0)
+            parseResult = parseExcelStructure(file, sheetMeta.getSheetNo());
+        }
+        catch (IOException e)
+        {
+            throw new ServiceException("读取sheet失败(" + sheetMeta.getSheetName() + "): " + e.getMessage());
+        }
+
+        if (parseResult.getColumnMetas().isEmpty())
+        {
+            throw new ServiceException("sheet[" + sheetMeta.getSheetName() + "]未检测到有效表头");
+        }
+
+        List<ExcelTableColumn> columns = toColumns(parseResult.getColumnMetas());
+        String structureHash = generateStructureHash(columns, sheetMeta.getSheetName());
+
+        ExcelUploadSheetResult sheetResult = new ExcelUploadSheetResult();
+        sheetResult.setSheetNo(sheetMeta.getSheetNo());
+        sheetResult.setSheetName(sheetMeta.getSheetName());
+
+        ExcelTable existingTable = excelTableMapper.selectExcelTableByHash(structureHash);
+        if (existingTable != null)
+        {
+            List<ExcelTableColumn> existingColumns = excelTableColumnMapper.selectExcelTableColumnByTableId(existingTable.getTableId());
+            sheetResult.setSuccess(true);
+            sheetResult.setNewTable(false);
+            sheetResult.setMessage("表结构已存在，复用已有表");
+            sheetResult.setTableId(existingTable.getTableId());
+            sheetResult.setTableName(existingTable.getTableName());
+            sheetResult.setTableComment(existingTable.getTableComment());
+            sheetResult.setRowCount(existingTable.getRowCount());
+            sheetResult.setColumns(existingColumns);
+            return sheetResult;
+        }
+
+        String tableName = generateTableName(batchId, sheetMeta.getSheetNo());
+        String sheetTableComment = buildSheetTableComment(tableComment, sheetMeta.getSheetName(), multiSheet);
+
+        ExcelTable excelTable = new ExcelTable();
+        excelTable.setTableName(tableName);
+        excelTable.setTableComment(sheetTableComment);
+        excelTable.setStructureHash(structureHash);
+        excelTable.setFileName(fileName);
+        excelTable.setStatus("0");
+        excelTable.setCreateBy(SecurityUtils.getUsername());
+        excelTable.setNewTable(true);
+
+        excelTableMapper.insertExcelTable(excelTable);
+
+        for (int i = 0; i < columns.size(); i++)
+        {
+            ExcelTableColumn column = columns.get(i);
+            column.setTableId(excelTable.getTableId());
+            column.setSort(i);
+            column.setIsPk("0");
+            column.setIsRequired("0");
+        }
+
+        excelTableColumnMapper.batchInsertExcelTableColumn(columns);
+
+        createDatabaseTable(tableName, sheetTableComment, columns);
+
+        int rowCount;
+        try
+        {
+            rowCount = insertExcelData(file, tableName, parseResult.getColumnMetas(), sheetMeta.getSheetNo());
+        }
+        catch (IOException e)
+        {
+            throw new ServiceException("写入sheet数据失败(" + sheetMeta.getSheetName() + "): " + e.getMessage());
+        }
+
+        ExcelTable updateTable = new ExcelTable();
+        updateTable.setTableId(excelTable.getTableId());
+        updateTable.setRowCount(rowCount);
+        excelTableMapper.updateExcelTable(updateTable);
+
+        sheetResult.setSuccess(true);
+        sheetResult.setNewTable(true);
+        sheetResult.setMessage("上传成功，已创建新表");
+        sheetResult.setTableId(excelTable.getTableId());
+        sheetResult.setTableName(tableName);
+        sheetResult.setTableComment(sheetTableComment);
+        sheetResult.setRowCount(rowCount);
+        sheetResult.setColumns(columns);
+        return sheetResult;
+    }
+
+    /**
+     * 解析需要导入的sheet列表
+     */
+    private List<SheetMeta> resolveTargetSheets(MultipartFile file, String importMode, String sheetNames)
+    {
+        String finalImportMode = StringUtils.upperCase(StringUtils.trimToEmpty(importMode));
+        if (StringUtils.isEmpty(finalImportMode))
+        {
+            finalImportMode = IMPORT_MODE_ALL_SHEETS;
+        }
+
+        Set<String> selectedSheetNames = new LinkedHashSet<>();
+        if (IMPORT_MODE_SELECTED_SHEETS.equals(finalImportMode))
+        {
+            if (StringUtils.isEmpty(sheetNames))
             {
-                dataRow = row;
-                break;
+                throw new ServiceException("导入模式为SELECTED_SHEETS时，sheetNames不能为空");
+            }
+
+            String[] nameArray = sheetNames.split(",");
+            for (String name : nameArray)
+            {
+                String trimName = StringUtils.trim(name);
+                if (StringUtils.isNotEmpty(trimName))
+                {
+                    selectedSheetNames.add(trimName);
+                }
+            }
+
+            if (selectedSheetNames.isEmpty())
+            {
+                throw new ServiceException("sheetNames未包含有效sheet名称");
             }
         }
 
-        for (int i = 0; i < headerRow.getLastCellNum(); i++)
+        List<SheetMeta> sheetMetas = new ArrayList<>();
+        try (InputStream inputStream = file.getInputStream(); Workbook workbook = WorkbookFactory.create(inputStream))
         {
-            Cell headerCell = headerRow.getCell(i);
-            if (headerCell == null)
+            int numberOfSheets = workbook.getNumberOfSheets();
+            for (int i = 0; i < numberOfSheets; i++)
             {
-                continue;
-            }
+                String sheetName = workbook.getSheetName(i);
+                if (StringUtils.isEmpty(sheetName))
+                {
+                    sheetName = "Sheet" + (i + 1);
+                }
 
-            String columnComment = getCellValueAsString(headerCell).trim();
+                if (IMPORT_MODE_SELECTED_SHEETS.equals(finalImportMode) && !selectedSheetNames.contains(sheetName))
+                {
+                    continue;
+                }
+
+                sheetMetas.add(new SheetMeta(i, sheetName));
+            }
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("解析sheet列表失败: " + e.getMessage());
+        }
+
+        if (IMPORT_MODE_SELECTED_SHEETS.equals(finalImportMode) && sheetMetas.isEmpty())
+        {
+            throw new ServiceException("未匹配到指定sheet，请检查sheetNames是否正确");
+        }
+
+        return sheetMetas;
+    }
+
+    /**
+     * 解析Excel结构（表头 + 样例数据行）
+     */
+    private ExcelParseResult parseExcelStructure(MultipartFile file, int sheetNo) throws IOException
+    {
+        final Map<Integer, String> headerMap = new LinkedHashMap<>();
+        final List<Map<Integer, String>> firstDataRows = new ArrayList<>(1);
+
+        try (InputStream inputStream = file.getInputStream())
+        {
+            EasyExcel.read(inputStream, new AnalysisEventListener<Map<Integer, String>>()
+            {
+                @Override
+                public void invoke(Map<Integer, String> data, AnalysisContext context)
+                {
+                    if (firstDataRows.isEmpty() && !isEmptyRow(data))
+                    {
+                        firstDataRows.add(new HashMap<>(data));
+                    }
+                }
+
+                @Override
+                public void invokeHeadMap(Map<Integer, String> headMap, AnalysisContext context)
+                {
+                    if (headMap != null)
+                    {
+                        headerMap.putAll(headMap);
+                    }
+                }
+
+                @Override
+                public void doAfterAllAnalysed(AnalysisContext context)
+                {
+                }
+            }).sheet(sheetNo).headRowNumber(1).doRead();
+        }
+
+        if (headerMap.isEmpty())
+        {
+            throw new ServiceException("Excel表头为空，无法创建表");
+        }
+
+        Map<Integer, String> sampleRow = firstDataRows.isEmpty() ? Collections.emptyMap() : firstDataRows.get(0);
+        List<Integer> columnIndexes = new ArrayList<>(headerMap.keySet());
+        Collections.sort(columnIndexes);
+
+        List<ColumnMeta> columnMetas = new ArrayList<>();
+        Set<String> usedColumnNames = new HashSet<>();
+        for (Integer columnIndex : columnIndexes)
+        {
+            String columnComment = StringUtils.trimToEmpty(headerMap.get(columnIndex));
             if (StringUtils.isEmpty(columnComment))
             {
                 continue;
             }
 
-            // 转换为英文列名（拼音）
-            String columnName = convertToPinyin(columnComment);
-            if (StringUtils.isEmpty(columnName))
-            {
-                columnName = "col_" + i;
-            }
+            String rawColumnName = convertToPinyin(columnComment);
+            String columnName = buildUniqueColumnName(rawColumnName, columnIndex, usedColumnNames);
 
-            // 推断数据类型
-            Cell dataCell = dataRow != null ? dataRow.getCell(i) : null;
-            String[] typeInfo = inferDataType(dataCell);
+            String sampleValue = sampleRow.get(columnIndex);
+            String[] typeInfo = inferDataType(sampleValue);
 
             ExcelTableColumn column = new ExcelTableColumn();
             column.setColumnName(columnName);
             column.setColumnComment(columnComment);
             column.setColumnType(typeInfo[0]);
             column.setJavaType(typeInfo[1]);
-            columns.add(column);
+
+            columnMetas.add(new ColumnMeta(columnIndex, column));
         }
 
-        return columns;
+        return new ExcelParseResult(columnMetas);
+    }
+
+    /**
+     * 构建唯一列名，避免重复表头生成同名列导致建表失败
+     */
+    private String buildUniqueColumnName(String rawColumnName, Integer columnIndex, Set<String> usedColumnNames)
+    {
+        String baseColumnName = StringUtils.isNotEmpty(rawColumnName) ? rawColumnName : "col_" + columnIndex;
+        String uniqueColumnName = baseColumnName;
+        int suffix = 2;
+        while (usedColumnNames.contains(uniqueColumnName))
+        {
+            uniqueColumnName = baseColumnName + "_" + suffix;
+            suffix++;
+        }
+        usedColumnNames.add(uniqueColumnName);
+        return uniqueColumnName;
     }
 
     /**
      * 推断数据类型
      */
-    private String[] inferDataType(Cell cell)
+    private String[] inferDataType(String value)
     {
         String columnType = "VARCHAR(255)";
         String javaType = "String";
 
-        if (cell == null)
+        if (StringUtils.isEmpty(value))
         {
-            return new String[]{columnType, javaType};
+            return new String[] { columnType, javaType };
         }
 
-        CellType cellType = cell.getCellType();
-
-        if (cellType == CellType.NUMERIC)
+        String trimValue = value.trim();
+        if (StringUtils.isEmpty(trimValue))
         {
-            if (DateUtil.isCellDateFormatted(cell))
-            {
-                columnType = "DATETIME";
-                javaType = "Date";
-            }
-            else
-            {
-                double value = cell.getNumericCellValue();
-                if (value != Math.floor(value))
-                {
-                    // 有小数
-                    columnType = "DECIMAL(19,4)";
-                    javaType = "BigDecimal";
-                }
-                else if (value > Integer.MAX_VALUE)
-                {
-                    columnType = "BIGINT";
-                    javaType = "Long";
-                }
-                else
-                {
-                    columnType = "INT";
-                    javaType = "Integer";
-                }
-            }
-        }
-        else if (cellType == CellType.STRING)
-        {
-            String value = cell.getStringCellValue();
-            if (value != null)
-            {
-                int length = value.length();
-                if (length > 2000)
-                {
-                    columnType = "TEXT";
-                    javaType = "String";
-                }
-                else if (length > 500)
-                {
-                    columnType = "VARCHAR(2000)";
-                    javaType = "String";
-                }
-                else if (length > 100)
-                {
-                    columnType = "VARCHAR(500)";
-                    javaType = "String";
-                }
-                else
-                {
-                    columnType = "VARCHAR(255)";
-                    javaType = "String";
-                }
-            }
+            return new String[] { columnType, javaType };
         }
 
-        return new String[]{columnType, javaType};
+        if (parseDate(trimValue) != null)
+        {
+            return new String[] { "DATETIME", "Date" };
+        }
+
+        String normalizeValue = trimValue.replace(",", "");
+        try
+        {
+            BigDecimal decimalValue = new BigDecimal(normalizeValue);
+            if (decimalValue.scale() > 0)
+            {
+                return new String[] { "DECIMAL(19,4)", "BigDecimal" };
+            }
+
+            if (decimalValue.compareTo(new BigDecimal(Integer.MAX_VALUE)) > 0
+                || decimalValue.compareTo(new BigDecimal(Integer.MIN_VALUE)) < 0)
+            {
+                return new String[] { "BIGINT", "Long" };
+            }
+            return new String[] { "INT", "Integer" };
+        }
+        catch (Exception e)
+        {
+        }
+
+        int length = trimValue.length();
+        if (length > 2000)
+        {
+            columnType = "TEXT";
+        }
+        else if (length > 500)
+        {
+            columnType = "VARCHAR(2000)";
+        }
+        else if (length > 100)
+        {
+            columnType = "VARCHAR(500)";
+        }
+
+        return new String[] { columnType, javaType };
     }
 
     /**
      * 生成结构Hash
      */
-    private String generateStructureHash(List<ExcelTableColumn> columns)
+    private String generateStructureHash(List<ExcelTableColumn> columns, String sheetName)
     {
         StringBuilder sb = new StringBuilder();
+        sb.append("sheet:").append(sheetName).append("|");
         for (ExcelTableColumn column : columns)
         {
-            sb.append(column.getColumnName()).append(":")
-              .append(column.getColumnType()).append("|");
+            sb.append(column.getColumnName()).append(":").append(column.getColumnType()).append("|");
         }
-        
+
         try
         {
             MessageDigest md = MessageDigest.getInstance("MD5");
@@ -365,7 +607,6 @@ public class ExcelTableServiceImpl implements IExcelTableService
         }
         catch (NoSuchAlgorithmException e)
         {
-            // 如果MD5不可用，使用简单的字符串哈希
             return String.valueOf(sb.toString().hashCode());
         }
     }
@@ -373,9 +614,30 @@ public class ExcelTableServiceImpl implements IExcelTableService
     /**
      * 生成表名
      */
-    private String generateTableName()
+    private String generateTableName(String batchId, Integer sheetNo)
     {
-        return "upload_" + System.currentTimeMillis();
+        return "upload_" + batchId + "_" + (sheetNo + 1);
+    }
+
+    /**
+     * 生成表描述
+     */
+    private String buildSheetTableComment(String tableComment, String sheetName, boolean multiSheet)
+    {
+        String result = multiSheet ? tableComment + "-" + sheetName : tableComment;
+        return limitLength(result, 200);
+    }
+
+    /**
+     * 字符串长度截断
+     */
+    private String limitLength(String value, int maxLength)
+    {
+        if (StringUtils.isEmpty(value) || value.length() <= maxLength)
+        {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 
     /**
@@ -421,11 +683,9 @@ public class ExcelTableServiceImpl implements IExcelTableService
         }
 
         String pinyin = result.toString();
-        // 去除连续的下划线
         pinyin = pinyin.replaceAll("_+", "_");
-        // 去除首尾下划线
         pinyin = pinyin.replaceAll("^_+|_+$", "");
-        
+
         return pinyin;
     }
 
@@ -441,14 +701,13 @@ public class ExcelTableServiceImpl implements IExcelTableService
         for (int i = 0; i < columns.size(); i++)
         {
             ExcelTableColumn column = columns.get(i);
-            sql.append("    ").append(column.getColumnName())
-               .append(" ").append(column.getColumnType());
-            
+            sql.append("    ").append(column.getColumnName()).append(" ").append(column.getColumnType());
+
             if (StringUtils.isNotEmpty(column.getColumnComment()))
             {
                 sql.append(" COMMENT '").append(column.getColumnComment().replace("'", "\\'")).append("'");
             }
-            
+
             if (i < columns.size() - 1)
             {
                 sql.append(",");
@@ -464,51 +723,65 @@ public class ExcelTableServiceImpl implements IExcelTableService
     /**
      * 插入Excel数据
      */
-    private int insertExcelData(Sheet sheet, String tableName, List<ExcelTableColumn> columns)
+    private int insertExcelData(MultipartFile file, String tableName, List<ColumnMeta> columnMetas, int sheetNo) throws IOException
     {
-        int rowCount = 0;
-        List<String> valueList = new ArrayList<>();
-
-        for (int i = 1; i <= sheet.getLastRowNum(); i++)
+        final List<ExcelTableColumn> columns = toColumns(columnMetas);
+        final List<Integer> columnIndexes = new ArrayList<>();
+        for (ColumnMeta columnMeta : columnMetas)
         {
-            Row row = sheet.getRow(i);
-            if (row == null)
-            {
-                continue;
-            }
-
-            StringBuilder values = new StringBuilder("(");
-            for (int j = 0; j < columns.size(); j++)
-            {
-                ExcelTableColumn column = columns.get(j);
-                Cell cell = row.getCell(j);
-                String value = formatCellValue(cell, column.getColumnType());
-                values.append(value);
-                
-                if (j < columns.size() - 1)
-                {
-                    values.append(", ");
-                }
-            }
-            values.append(")");
-            valueList.add(values.toString());
-            rowCount++;
-
-            // 批量插入
-            if (valueList.size() >= BATCH_SIZE)
-            {
-                batchInsert(tableName, columns, valueList);
-                valueList.clear();
-            }
+            columnIndexes.add(columnMeta.getColumnIndex());
         }
 
-        // 插入剩余数据
+        final List<String> valueList = new ArrayList<>();
+        final int[] rowCount = new int[] { 0 };
+
+        try (InputStream inputStream = file.getInputStream())
+        {
+            EasyExcel.read(inputStream, new AnalysisEventListener<Map<Integer, String>>()
+            {
+                @Override
+                public void invoke(Map<Integer, String> data, AnalysisContext context)
+                {
+                    if (isEmptyRow(data))
+                    {
+                        return;
+                    }
+
+                    StringBuilder values = new StringBuilder("(");
+                    for (int i = 0; i < columnIndexes.size(); i++)
+                    {
+                        String cellValue = data.get(columnIndexes.get(i));
+                        values.append(formatCellValue(cellValue, columns.get(i).getColumnType()));
+
+                        if (i < columnIndexes.size() - 1)
+                        {
+                            values.append(", ");
+                        }
+                    }
+                    values.append(")");
+                    valueList.add(values.toString());
+                    rowCount[0]++;
+
+                    if (valueList.size() >= BATCH_SIZE)
+                    {
+                        batchInsert(tableName, columns, valueList);
+                        valueList.clear();
+                    }
+                }
+
+                @Override
+                public void doAfterAllAnalysed(AnalysisContext context)
+                {
+                }
+            }).sheet(sheetNo).headRowNumber(1).doRead();
+        }
+
         if (!valueList.isEmpty())
         {
             batchInsert(tableName, columns, valueList);
         }
 
-        return rowCount;
+        return rowCount[0];
     }
 
     /**
@@ -518,7 +791,7 @@ public class ExcelTableServiceImpl implements IExcelTableService
     {
         StringBuilder sql = new StringBuilder();
         sql.append("INSERT INTO ").append(tableName).append(" (");
-        
+
         for (int i = 0; i < columns.size(); i++)
         {
             sql.append(columns.get(i).getColumnName());
@@ -528,7 +801,7 @@ public class ExcelTableServiceImpl implements IExcelTableService
             }
         }
         sql.append(") VALUES ");
-        
+
         for (int i = 0; i < valueList.size(); i++)
         {
             sql.append(valueList.get(i));
@@ -544,124 +817,115 @@ public class ExcelTableServiceImpl implements IExcelTableService
     /**
      * 格式化单元格值为SQL值
      */
-    private String formatCellValue(Cell cell, String columnType)
+    private String formatCellValue(String value, String columnType)
     {
-        if (cell == null)
+        if (StringUtils.isEmpty(value))
         {
             return "NULL";
         }
 
-        CellType cellType = cell.getCellType();
-
-        if (cellType == CellType.BLANK)
+        String trimValue = value.trim();
+        if (StringUtils.isEmpty(trimValue))
         {
             return "NULL";
         }
-        else if (cellType == CellType.NUMERIC)
+
+        if (columnType.startsWith("DATETIME"))
         {
-            if (DateUtil.isCellDateFormatted(cell))
-            {
-                Date date = cell.getDateCellValue();
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                return "'" + sdf.format(date) + "'";
-            }
-            else
-            {
-                double value = cell.getNumericCellValue();
-                if (columnType.startsWith("DECIMAL"))
-                {
-                    return new BigDecimal(value).toPlainString();
-                }
-                else if (columnType.startsWith("BIGINT"))
-                {
-                    return String.valueOf((long) value);
-                }
-                else
-                {
-                    return String.valueOf((int) value);
-                }
-            }
-        }
-        else if (cellType == CellType.BOOLEAN)
-        {
-            return cell.getBooleanCellValue() ? "1" : "0";
-        }
-        else if (cellType == CellType.FORMULA)
-        {
-            try
-            {
-                return "'" + cell.getStringCellValue().replace("'", "\\'") + "'";
-            }
-            catch (Exception e)
-            {
-                try
-                {
-                    return String.valueOf(cell.getNumericCellValue());
-                }
-                catch (Exception e2)
-                {
-                    return "NULL";
-                }
-            }
-        }
-        else
-        {
-            String value = cell.getStringCellValue();
-            if (StringUtils.isEmpty(value))
+            Date date = parseDate(trimValue);
+            if (date == null)
             {
                 return "NULL";
             }
-            return "'" + value.replace("'", "\\'") + "'";
-        }
-    }
-
-    /**
-     * 获取单元格值作为字符串
-     */
-    private String getCellValueAsString(Cell cell)
-    {
-        if (cell == null)
-        {
-            return "";
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            return "'" + sdf.format(date) + "'";
         }
 
-        CellType cellType = cell.getCellType();
-        
-        if (cellType == CellType.STRING)
+        if (columnType.startsWith("DECIMAL") || columnType.startsWith("BIGINT") || columnType.startsWith("INT"))
         {
-            return cell.getStringCellValue();
-        }
-        else if (cellType == CellType.NUMERIC)
-        {
-            if (DateUtil.isCellDateFormatted(cell))
+            String normalizeValue = trimValue.replace(",", "");
+            if (StringUtils.equalsAnyIgnoreCase(normalizeValue, "true", "yes"))
             {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                return sdf.format(cell.getDateCellValue());
+                return "1";
             }
-            return String.valueOf(cell.getNumericCellValue());
-        }
-        else if (cellType == CellType.BOOLEAN)
-        {
-            return String.valueOf(cell.getBooleanCellValue());
-        }
-        else if (cellType == CellType.FORMULA)
-        {
+            if (StringUtils.equalsAnyIgnoreCase(normalizeValue, "false", "no"))
+            {
+                return "0";
+            }
             try
             {
-                return cell.getStringCellValue();
+                BigDecimal decimal = new BigDecimal(normalizeValue);
+                if (columnType.startsWith("INT") || columnType.startsWith("BIGINT"))
+                {
+                    return decimal.toBigInteger().toString();
+                }
+                return decimal.toPlainString();
             }
             catch (Exception e)
             {
-                return String.valueOf(cell.getNumericCellValue());
+                return "NULL";
             }
         }
-        
-        return "";
+
+        return "'" + trimValue.replace("'", "\\'") + "'";
+    }
+
+    /**
+     * 解析日期
+     */
+    private Date parseDate(String value)
+    {
+        for (String pattern : DATE_PATTERNS)
+        {
+            try
+            {
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+                sdf.setLenient(false);
+                return sdf.parse(value);
+            }
+            catch (ParseException e)
+            {
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 判断是否空行
+     */
+    private boolean isEmptyRow(Map<Integer, String> rowData)
+    {
+        if (rowData == null || rowData.isEmpty())
+        {
+            return true;
+        }
+
+        for (String cellValue : rowData.values())
+        {
+            if (StringUtils.isNotBlank(cellValue))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 转换ColumnMeta列表为Column列表
+     */
+    private List<ExcelTableColumn> toColumns(List<ColumnMeta> columnMetas)
+    {
+        List<ExcelTableColumn> columns = new ArrayList<>(columnMetas.size());
+        for (ColumnMeta columnMeta : columnMetas)
+        {
+            columns.add(columnMeta.getColumn());
+        }
+        return columns;
     }
 
     /**
      * 修改Excel上传表
-     * 
+     *
      * @param excelTable Excel上传表
      * @return 结果
      */
@@ -674,42 +938,36 @@ public class ExcelTableServiceImpl implements IExcelTableService
 
     /**
      * 批量删除Excel上传表
-     * 
+     *
      * @param tableIds 需要删除的Excel上传表主键
      * @return 结果
      */
     @Override
-    @Transactional
     public int deleteExcelTableByIds(Long[] tableIds)
     {
-        // 删除列信息
         for (Long tableId : tableIds)
         {
             excelTableColumnMapper.deleteExcelTableColumnByTableId(tableId);
         }
-        // 删除表信息
         return excelTableMapper.deleteExcelTableByIds(tableIds);
     }
 
     /**
      * 删除Excel上传表信息
-     * 
+     *
      * @param tableId Excel上传表主键
      * @return 结果
      */
     @Override
-    @Transactional
     public int deleteExcelTableById(Long tableId)
     {
-        // 删除列信息
         excelTableColumnMapper.deleteExcelTableColumnByTableId(tableId);
-        // 删除表信息
         return excelTableMapper.deleteExcelTableById(tableId);
     }
 
     /**
      * 获取表数据（分页）
-     * 
+     *
      * @param tableId 表ID
      * @param pageNum 页码
      * @param pageSize 每页大小
@@ -718,7 +976,6 @@ public class ExcelTableServiceImpl implements IExcelTableService
     @Override
     public TableDataInfo getTableData(Long tableId, Integer pageNum, Integer pageSize)
     {
-        // 获取表信息
         ExcelTable excelTable = excelTableMapper.selectExcelTableById(tableId);
         if (excelTable == null)
         {
@@ -726,23 +983,15 @@ public class ExcelTableServiceImpl implements IExcelTableService
         }
 
         String tableName = excelTable.getTableName();
-
-        // 校验表名合法性（必须以 upload_ 开头，防止 SQL 注入）
         if (!tableName.startsWith("upload_"))
         {
             throw new ServiceException("非法表名");
         }
 
-        // 计算起始行
         int startRow = (pageNum - 1) * pageSize;
-
-        // 查询总数
         Long total = excelTableMapper.selectTableDataCount(tableName);
-
-        // 查询数据
         List<Map<String, Object>> dataList = excelTableMapper.selectTableData(tableName, startRow, pageSize);
 
-        // 封装返回结果
         TableDataInfo dataInfo = new TableDataInfo();
         dataInfo.setCode(200);
         dataInfo.setMsg("查询成功");
@@ -750,5 +999,73 @@ public class ExcelTableServiceImpl implements IExcelTableService
         dataInfo.setRows(dataList);
 
         return dataInfo;
+    }
+
+    /**
+     * Excel列元数据
+     */
+    private static class ColumnMeta
+    {
+        private final Integer columnIndex;
+        private final ExcelTableColumn column;
+
+        private ColumnMeta(Integer columnIndex, ExcelTableColumn column)
+        {
+            this.columnIndex = columnIndex;
+            this.column = column;
+        }
+
+        public Integer getColumnIndex()
+        {
+            return columnIndex;
+        }
+
+        public ExcelTableColumn getColumn()
+        {
+            return column;
+        }
+    }
+
+    /**
+     * Excel解析结果
+     */
+    private static class ExcelParseResult
+    {
+        private final List<ColumnMeta> columnMetas;
+
+        private ExcelParseResult(List<ColumnMeta> columnMetas)
+        {
+            this.columnMetas = columnMetas;
+        }
+
+        public List<ColumnMeta> getColumnMetas()
+        {
+            return columnMetas;
+        }
+    }
+
+    /**
+     * sheet元信息
+     */
+    private static class SheetMeta
+    {
+        private final Integer sheetNo;
+        private final String sheetName;
+
+        private SheetMeta(Integer sheetNo, String sheetName)
+        {
+            this.sheetNo = sheetNo;
+            this.sheetName = sheetName;
+        }
+
+        public Integer getSheetNo()
+        {
+            return sheetNo;
+        }
+
+        public String getSheetName()
+        {
+            return sheetName;
+        }
     }
 }

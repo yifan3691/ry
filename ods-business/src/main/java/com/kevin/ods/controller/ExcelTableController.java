@@ -1,7 +1,6 @@
 package com.kevin.ods.controller;
 
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +17,7 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.kevin.ods.domain.ExcelUploadBatchResult;
 import com.kevin.ods.domain.ExcelTable;
 import com.kevin.ods.service.IExcelTableService;
 import com.ruoyi.common.core.page.TableDataInfo;
@@ -65,18 +65,16 @@ public class ExcelTableController extends BaseController
     @Log(title = "Excel上传建表", businessType = BusinessType.INSERT)
     @PostMapping("/upload")
     public AjaxResult uploadExcel(@RequestParam("file") MultipartFile file,
-                                   @RequestParam(value = "tableComment", required = false) String tableComment)
+                                   @RequestParam(value = "tableComment", required = false) String tableComment,
+                                   @RequestParam(value = "importMode", required = false, defaultValue = "ALL_SHEETS") String importMode,
+                                   @RequestParam(value = "sheetNames", required = false) String sheetNames)
     {
         try
         {
-            ExcelTable excelTable = excelTableService.uploadExcel(file, tableComment);
-            
-            if (!excelTable.isNewTable())
-            {
-                return AjaxResult.success("表结构已存在，未创建新表", excelTable);
-            }
-            
-            return AjaxResult.success("上传成功，已创建新表", excelTable);
+            ExcelUploadBatchResult batchResult = excelTableService.uploadExcelBatch(file, tableComment, importMode, sheetNames);
+            String msg = String.format("上传完成：共%s个sheet，成功%s个，失败%s个", batchResult.getTotalSheets(),
+                    batchResult.getSuccessSheets(), batchResult.getFailedSheets());
+            return AjaxResult.success(msg, batchResult);
         }
         catch (Exception e)
         {

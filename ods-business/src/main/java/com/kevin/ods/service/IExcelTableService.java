@@ -1,7 +1,7 @@
 package com.kevin.ods.service;
 
 import java.util.List;
-import java.util.Map;
+import com.kevin.ods.domain.ExcelUploadBatchResult;
 import com.kevin.ods.domain.ExcelTable;
 import com.ruoyi.common.core.page.TableDataInfo;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,6 +38,17 @@ public interface IExcelTableService
      * @return Excel上传表信息
      */
     public ExcelTable uploadExcel(MultipartFile file, String tableComment);
+
+    /**
+     * 上传Excel并按sheet批量建表
+     *
+     * @param file Excel文件
+     * @param tableComment 表描述（基础描述）
+     * @param importMode 导入模式：ALL_SHEETS 或 SELECTED_SHEETS
+     * @param sheetNames 指定sheet名称（逗号分隔，仅在SELECTED_SHEETS时生效）
+     * @return 批量上传结果
+     */
+    public ExcelUploadBatchResult uploadExcelBatch(MultipartFile file, String tableComment, String importMode, String sheetNames);
 
     /**
      * 修改Excel上传表
