@@ -32,10 +32,10 @@ mvn clean package -DskipTests
 
 ### 前端 (Vue)
 
-位于 `ruoyi-vue/if-based-on-vue/` 目录：
+位于 `ruoyi-vue/` 目录：
 
 ```bash
-cd ruoyi-vue/if-based-on-vue
+cd ruoyi-vue
 
 # 安装依赖
 npm install
@@ -169,7 +169,7 @@ ruoyi/                          # 根目录
 ├── ruoyi-generator/           # 代码生成
 ├── ruoyi-common/              # 公共工具类和常量
 ├── ods-business/              # 自定义业务模块
-└── ruoyi-vue/if-based-on-vue/ # 前端Vue项目
+└── ruoyi-vue/                # 前端Vue项目
 ```
 
 ## 数据库约定
