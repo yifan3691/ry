@@ -143,6 +143,16 @@ npm run lint -- --fix
 - 建议使用格式：`类型: 变更说明`（例如：`feat: 新增登录页视觉改版`、`fix: 修复验证码刷新异常`）
 - 除非用户明确要求，否则不要使用纯英文提交信息
 
+## 项目级Skills
+
+- 项目内共享 skills 统一放在 `.agents/skills/` 目录中，跟随仓库一起维护
+- 当前项目级 skills：
+  - `ruoyi-backend-crud`
+  - `ruoyi-vue2-element-page`
+  - `ruoyi-repo-workflow`
+- Skills 只记录本项目特有流程和约束，通用规范仍以本文件为准
+- 如果需要让本机 Codex 直接自动发现这些 skills，可按需将项目内 skill 目录链接到 `~/.agents/skills/`
+
 ## 架构模式
 
 ### 后端
