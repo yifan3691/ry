@@ -8,7 +8,7 @@ concurrency:
 
 # 统一维护服务器部署目录，避免重复写死路径
 env:
-  FRONTEND_DEPLOY_PATH: /home/ubuntu/project/ry/vue
+  FRONTEND_DEPLOY_PATH: /opt/1panel/www/sites/ry
   BACKEND_DEPLOY_PATH: /home/ubuntu/project/ry/boot
 
 # 配置工作流触发时机
