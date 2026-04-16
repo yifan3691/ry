@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: 后端构建
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+
+      - name: Maven 打包
+        run: mvn -B clean package -DskipTests
+
+      - name: 上传后端产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-artifacts
+          path: |
+            ruoyi-admin/target/*.war
+            ruoyi-framework/target/*.jar
+            ruoyi-system/target/*.jar
+            ruoyi-quartz/target/*.jar
+            ruoyi-generator/target/*.jar
+            ruoyi-common/target/*.jar
+            ods-business/target/*.jar
+          if-no-files-found: error
+
+  frontend:
+    name: 前端构建
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ruoyi-vue
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js 16
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16'
+
+      - name: 缓存 npm 依赖
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('ruoyi-vue/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: 安装前端依赖
+        run: npm install
+
+      - name: 构建前端
+        run: npm run build:prod
+
+      - name: 上传前端产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ruoyi-vue/dist
+          if-no-files-found: error
