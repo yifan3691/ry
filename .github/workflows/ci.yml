@@ -8,8 +8,8 @@ concurrency:
 
 # 统一维护服务器部署目录，避免重复写死路径
 env:
-  FRONTEND_DEPLOY_PATH: /home/ubuntu/project/ry
-  BACKEND_DEPLOY_PATH: /home/ubuntu/project/ry
+  FRONTEND_DEPLOY_PATH: /home/ubuntu/project/ry/vue
+  BACKEND_DEPLOY_PATH: /home/ubuntu/project/ry/boot
 
 # 配置工作流触发时机
 on:
@@ -102,7 +102,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             mkdir -p ${{ env.BACKEND_DEPLOY_PATH }}
-            rm -f ${{ env.BACKEND_DEPLOY_PATH }}/*.jar
+            find ${{ env.BACKEND_DEPLOY_PATH }} -maxdepth 1 -type f -name '*.jar' -delete
 
       # 直接上传最终 jar 包到服务器，省去 artifact 中转
       - name: 上传后端到服务器
@@ -113,8 +113,9 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: ruoyi-admin/target/*.jar
+          source: ruoyi-admin/target/ruoyi-admin.jar
           target: ${{ env.BACKEND_DEPLOY_PATH }}
+          strip_components: 2
           overwrite: true
 
   # 前端构建任务
@@ -185,6 +186,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           source: ruoyi-vue/dist/*
           target: ${{ env.FRONTEND_DEPLOY_PATH }}
+          strip_components: 2
           overwrite: true
 
       # 如果你服务器上的前端目录有额外处理需求，可以在这里补充命令
