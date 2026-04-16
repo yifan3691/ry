@@ -1,6 +1,16 @@
 # 工作流名称，会显示在 GitHub Actions 页面中
 name: CI
 
+# 同一分支有新提交时，自动取消旧的运行，避免排队浪费时间
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 统一维护服务器部署目录，避免重复写死路径
+env:
+  FRONTEND_DEPLOY_PATH: /home/ubuntu/project/ry/vue
+  BACKEND_DEPLOY_PATH: /home/ubuntu/project/ry/boot
+
 # 配置工作流触发时机
 on:
   # 推送到 master 或 main 分支时自动执行
@@ -18,10 +28,49 @@ on:
 
 # 定义具体要执行的任务
 jobs:
+  # 先判断本次提交影响了前端还是后端，避免两边都全量执行
+  changes:
+    # 任务显示名称
+    name: 变更检测
+    # 使用 GitHub 提供的 Ubuntu 运行环境
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+
+    steps:
+      # 拉取仓库代码到 Actions 运行器
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # 根据改动路径判断需要跑哪些任务
+      - name: 检测改动范围
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'pom.xml'
+              - 'ruoyi-admin/**'
+              - 'ruoyi-common/**'
+              - 'ruoyi-framework/**'
+              - 'ruoyi-generator/**'
+              - 'ruoyi-quartz/**'
+              - 'ruoyi-system/**'
+              - 'ods-business/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'ruoyi-vue/**'
+              - '.github/workflows/ci.yml'
+
   # 后端构建任务
   backend:
     # 任务显示名称
     name: 后端构建
+    # 依赖变更检测结果
+    needs: changes
+    # 只有后端相关改动，或手动触发时才执行
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
     # 使用 GitHub 提供的 Ubuntu 运行环境
     runs-on: ubuntu-latest
 
@@ -38,29 +87,44 @@ jobs:
           java-version: '8'
           cache: maven
 
-      # 执行 Maven 打包，跳过测试以加快构建速度
+      # GitHub Actions 每次都是全新环境，不需要先 clean；开启并行编译可缩短总时长
       - name: Maven 打包
-        run: mvn -B clean package -DskipTests
+        run: mvn -B -T 1C -DskipTests package
 
-      # 上传后端构建产物，方便在 Actions 页面下载
-      - name: 上传后端产物
-        uses: actions/upload-artifact@v4
+      # 仅在 push 或手动触发时准备服务器目录，PR 只做构建校验
+      - name: 准备后端服务器目录
+        if: github.event_name != 'pull_request'
+        uses: appleboy/ssh-action@v1
         with:
-          name: backend-artifacts
-          path: |
-            ruoyi-admin/target/*.war
-            ruoyi-framework/target/*.jar
-            ruoyi-system/target/*.jar
-            ruoyi-quartz/target/*.jar
-            ruoyi-generator/target/*.jar
-            ruoyi-common/target/*.jar
-            ods-business/target/*.jar
-          if-no-files-found: error
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: |
+            mkdir -p ${{ env.BACKEND_DEPLOY_PATH }}
+            rm -f ${{ env.BACKEND_DEPLOY_PATH }}/*.war
+
+      # 直接上传最终 war 包到服务器，省去 artifact 中转
+      - name: 上传后端到服务器
+        if: github.event_name != 'pull_request'
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          source: ruoyi-admin/target/*.war
+          target: ${{ env.BACKEND_DEPLOY_PATH }}
+          overwrite: true
 
   # 前端构建任务
   frontend:
     # 任务显示名称
     name: 前端构建
+    # 依赖变更检测结果
+    needs: changes
+    # 只有前端相关改动，或手动触发时才执行
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
     # 使用 GitHub 提供的 Ubuntu 运行环境
     runs-on: ubuntu-latest
 
@@ -89,18 +153,51 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
 
-      # 安装前端依赖包
+      # 关闭审计和进度条，减少无意义等待与日志输出
       - name: 安装前端依赖
-        run: npm install
+        run: npm install --prefer-offline --no-audit --progress=false
 
       # 执行前端生产环境打包
       - name: 构建前端
         run: npm run build:prod
 
-      # 上传前端 dist 目录，方便在 Actions 页面下载
-      - name: 上传前端产物
-        uses: actions/upload-artifact@v4
+      # 仅在 push 或手动触发时准备服务器目录，PR 只做构建校验
+      - name: 准备前端服务器目录
+        if: github.event_name != 'pull_request'
+        uses: appleboy/ssh-action@v1
         with:
-          name: frontend-dist
-          path: ruoyi-vue/dist
-          if-no-files-found: error
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: |
+            mkdir -p ${{ env.FRONTEND_DEPLOY_PATH }}
+            find ${{ env.FRONTEND_DEPLOY_PATH }} -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      # 直接上传前端 dist 内容到服务器，省去 artifact 中转
+      - name: 上传前端到服务器
+        if: github.event_name != 'pull_request'
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          source: ruoyi-vue/dist/*
+          target: ${{ env.FRONTEND_DEPLOY_PATH }}
+          overwrite: true
+
+      # 如果你服务器上的前端目录有额外处理需求，可以在这里补充命令
+
+  # 如果你服务器上的后端服务需要自动重启，可以在后端任务末尾补一段 ssh 命令
+  # 例如：
+  # - name: 重启后端服务
+  #   if: github.event_name != 'pull_request'
+  #   uses: appleboy/ssh-action@v1
+  #   with:
+  #     host: ${{ secrets.DEPLOY_HOST }}
+  #     username: ${{ secrets.DEPLOY_USERNAME }}
+  #     key: ${{ secrets.DEPLOY_SSH_KEY }}
+  #     port: ${{ secrets.DEPLOY_PORT }}
+  #     script: |
+  #       systemctl restart ruoyi
