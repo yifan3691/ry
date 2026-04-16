@@ -96,10 +96,10 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USERNAME }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
           script: |
             mkdir -p ${{ env.BACKEND_DEPLOY_PATH }}
             rm -f ${{ env.BACKEND_DEPLOY_PATH }}/*.war
@@ -109,10 +109,10 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: appleboy/scp-action@v1
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USERNAME }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
           source: ruoyi-admin/target/*.war
           target: ${{ env.BACKEND_DEPLOY_PATH }}
           overwrite: true
@@ -166,10 +166,10 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USERNAME }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
           script: |
             mkdir -p ${{ env.FRONTEND_DEPLOY_PATH }}
             find ${{ env.FRONTEND_DEPLOY_PATH }} -mindepth 1 -maxdepth 1 -exec rm -rf {} +
@@ -179,10 +179,10 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: appleboy/scp-action@v1
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USERNAME }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
           source: ruoyi-vue/dist/*
           target: ${{ env.FRONTEND_DEPLOY_PATH }}
           overwrite: true
@@ -195,9 +195,9 @@ jobs:
   #   if: github.event_name != 'pull_request'
   #   uses: appleboy/ssh-action@v1
   #   with:
-  #     host: ${{ secrets.DEPLOY_HOST }}
-  #     username: ${{ secrets.DEPLOY_USERNAME }}
-  #     key: ${{ secrets.DEPLOY_SSH_KEY }}
-  #     port: ${{ secrets.DEPLOY_PORT }}
+  #     host: ${{ secrets.SERVER_HOST }}
+  #     username: ${{ secrets.SERVER_USERNAME }}
+  #     key: ${{ secrets.SERVER_SSH_KEY }}
+  #     port: ${{ secrets.SERVER_PORT }}
   #     script: |
   #       systemctl restart ruoyi
