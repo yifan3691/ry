@@ -1,4 +1,8 @@
-# 数据源配置
+# 数据源配置示例
+# 使用方式：
+# 1. 复制本文件为 application-druid.yml
+# 2. 按实际环境填写数据库账号、密码和地址
+# 3. application-druid.yml 仅保留在本地或服务器，不提交到 GitHub
 spring:
     datasource:
         type: com.alibaba.druid.pool.DruidDataSource
@@ -6,16 +10,16 @@ spring:
         druid:
             # 主库数据源
             master:
-                url: jdbc:mysql://170.9.59.234:4001/ry_vue?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
-                username: ry_vue
-                password: DjJpSFbQxBPSQM7B
+                url: jdbc:mysql://127.0.0.1:3306/ry_vue?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai
+                username: your_username
+                password: your_password
             # 从库数据源
             slave:
                 # 从数据源开关/默认关闭
-                enabled: true
-                url:  jdbc:mysql://134.175.53.73:4001/ry_vue?useUnicode=true&useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-                username: ry_vue
-                password: ry_vue1
+                enabled: false
+                url: jdbc:mysql://127.0.0.1:3306/ry_vue?useUnicode=true&useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+                username: your_slave_username
+                password: your_slave_password
             # 初始连接数
             initialSize: 5
             # 最小连接池数量

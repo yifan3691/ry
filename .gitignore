@@ -73,3 +73,6 @@ ChannelBizRankClient.java
 ChannelBizBrandWallClient.java
 application-pro.yml
 /*/rebel.xml
+
+# 本地/生产环境专用配置，不提交到 GitHub
+ruoyi-admin/src/main/resources/application-druid.yml
