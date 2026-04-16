@@ -102,9 +102,9 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             mkdir -p ${{ env.BACKEND_DEPLOY_PATH }}
-            rm -f ${{ env.BACKEND_DEPLOY_PATH }}/*.war
+            rm -f ${{ env.BACKEND_DEPLOY_PATH }}/*.jar
 
-      # 直接上传最终 war 包到服务器，省去 artifact 中转
+      # 直接上传最终 jar 包到服务器，省去 artifact 中转
       - name: 上传后端到服务器
         if: github.event_name != 'pull_request'
         uses: appleboy/scp-action@v1
@@ -113,7 +113,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: ruoyi-admin/target/*.war
+          source: ruoyi-admin/target/*.jar
           target: ${{ env.BACKEND_DEPLOY_PATH }}
           overwrite: true
 
