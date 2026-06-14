@@ -3,7 +3,18 @@
     <el-row>
       <el-col :span="12" class="card-box">
         <el-card>
-          <div slot="header"><span><i class="el-icon-cpu"></i> CPU</span></div>
+          <div slot="header" class="card-header">
+            <span><i class="el-icon-cpu" /> CPU</span>
+            <el-button
+              v-hasPermi="['monitor:server:stress']"
+              type="warning"
+              size="mini"
+              icon="el-icon-video-play"
+              :loading="stressLoading"
+              :disabled="stressStatus.running"
+              @click="handleStartStress"
+            >CPU压测</el-button>
+          </div>
           <div class="el-table el-table--enable-row-hover el-table--medium">
             <table cellspacing="0" style="width: 100%;">
               <thead>
@@ -32,6 +43,42 @@
               </tbody>
             </table>
           </div>
+          <el-form
+            v-hasPermi="['monitor:server:stress']"
+            class="cpu-stress-form"
+            :inline="true"
+            size="mini"
+          >
+            <el-form-item label="线程数">
+              <el-input-number
+                v-model="stressForm.threads"
+                :min="1"
+                :max="stressStatus.maxThreads || 1"
+                controls-position="right"
+              />
+            </el-form-item>
+            <el-form-item label="持续秒数">
+              <el-input-number
+                v-model="stressForm.seconds"
+                :min="1"
+                :max="stressStatus.maxSeconds || 120"
+                controls-position="right"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button
+                v-if="stressStatus.running"
+                type="danger"
+                plain
+                icon="el-icon-video-pause"
+                :loading="stressStopLoading"
+                @click="handleStopStress"
+              >停止</el-button>
+              <el-tag :type="stressStatus.running ? 'danger' : 'info'">
+                {{ stressStatusText }}
+              </el-tag>
+            </el-form-item>
+          </el-form>
         </el-card>
       </el-col>
 
@@ -176,32 +223,126 @@
 </template>
 
 <script>
-import { getServer } from "@/api/monitor/server";
+import { getServer, getCpuStressStatus, startCpuStress, stopCpuStress } from '@/api/monitor/server'
 
 export default {
-  name: "Server",
+  name: 'Server',
   data() {
     return {
       // 服务器信息
-      server: []
-    };
+      server: [],
+      stressForm: {
+        threads: null,
+        seconds: 30
+      },
+      stressStatus: {
+        running: false,
+        activeThreads: 0,
+        threads: 0,
+        seconds: 0,
+        remainingSeconds: 0,
+        maxThreads: 1,
+        maxSeconds: 120
+      },
+      stressLoading: false,
+      stressStopLoading: false,
+      stressTimer: null
+    }
+  },
+  computed: {
+    stressStatusText() {
+      if (this.stressStatus.running) {
+        return '运行中，剩余 ' + this.stressStatus.remainingSeconds + ' 秒，活动线程 ' + this.stressStatus.activeThreads
+      }
+      return '未运行，最多 ' + this.stressStatus.maxThreads + ' 线程 / ' + this.stressStatus.maxSeconds + ' 秒'
+    }
   },
   created() {
-    this.getList();
-    this.openLoading();
+    this.openLoading()
+    this.getList()
+    this.getStressStatus()
+    this.stressTimer = setInterval(() => {
+      this.getStressStatus()
+      if (this.stressStatus.running) {
+        this.getList()
+      }
+    }, 3000)
+  },
+  beforeDestroy() {
+    if (this.stressTimer) {
+      clearInterval(this.stressTimer)
+    }
   },
   methods: {
     /** 查询服务器信息 */
     getList() {
       getServer().then(response => {
-        this.server = response.data;
-        this.$modal.closeLoading();
-      });
+        this.server = response.data
+        this.$modal.closeLoading()
+      })
+    },
+    /** 查询CPU压测状态 */
+    getStressStatus() {
+      getCpuStressStatus().then(response => {
+        this.stressStatus = response.data
+        this.stressForm.threads = Math.min(this.stressForm.threads || response.data.maxThreads, response.data.maxThreads)
+        this.stressForm.seconds = Math.min(this.stressForm.seconds || 30, response.data.maxSeconds)
+      })
+    },
+    /** 启动CPU压测 */
+    handleStartStress() {
+      const params = {
+        threads: this.stressForm.threads || this.stressStatus.maxThreads,
+        seconds: this.stressForm.seconds || 30
+      }
+      this.$modal.confirm('确认启动CPU压测？线程数：' + params.threads + '，持续：' + params.seconds + '秒。').then(() => {
+        this.stressLoading = true
+        return startCpuStress(params)
+      }).then(response => {
+        this.$modal.msgSuccess(response.msg)
+        this.stressStatus = response.data
+        this.getList()
+      }).catch(() => {
+      }).finally(() => {
+        this.stressLoading = false
+      })
+    },
+    /** 停止CPU压测 */
+    handleStopStress() {
+      this.$modal.confirm('确认停止当前CPU压测任务？').then(() => {
+        this.stressStopLoading = true
+        return stopCpuStress()
+      }).then(response => {
+        this.$modal.msgSuccess(response.msg)
+        this.stressStatus = response.data
+        this.getList()
+      }).catch(() => {
+      }).finally(() => {
+        this.stressStopLoading = false
+      })
     },
     // 打开加载层
     openLoading() {
-      this.$modal.loading("正在加载服务监控数据，请稍候！");
+      this.$modal.loading('正在加载服务监控数据，请稍候！')
     }
   }
-};
+}
 </script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cpu-stress-form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ebeef5;
+}
+
+.cpu-stress-form .el-form-item {
+  margin-bottom: 0;
+}
+</style>
